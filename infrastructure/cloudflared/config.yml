@@ -1,0 +1,14 @@
+# =============================================================================
+# Cloudflare Tunnel — routes external traffic to Traefik
+# =============================================================================
+# The TUNNEL_TOKEN env var is set in .env and authenticates this tunnel.
+# All traffic enters via Cloudflare's edge and exits here to Traefik.
+# =============================================================================
+
+tunnel: clawdbot
+credentials-file: /etc/cloudflared/creds.json
+
+ingress:
+  - hostname: "*.clawdbot.internal"
+    service: http://traefik:80
+  - service: http_status:404

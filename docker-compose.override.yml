@@ -1,0 +1,55 @@
+# =============================================================================
+# Development overrides — exposes service ports on localhost for local dev
+# =============================================================================
+# Docker Compose auto-loads this file. NOT for production.
+# =============================================================================
+
+services:
+  postgres:
+    networks:
+      - data
+      - dev
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    networks:
+      - backend
+      - dev
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  qdrant:
+    networks:
+      - data
+      - dev
+    ports:
+      - "127.0.0.1:6333:6333"
+
+  minio:
+    networks:
+      - data
+      - dev
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+
+  api:
+    networks:
+      - frontend
+      - backend
+      - data
+      - dev
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  console:
+    networks:
+      - frontend
+      - dev
+    ports:
+      - "127.0.0.1:3000:3000"
+
+networks:
+  dev:
+    driver: bridge

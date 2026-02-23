@@ -1,0 +1,62 @@
+# =============================================================================
+# Traefik Dynamic Configuration — Security Middleware
+# =============================================================================
+# Referenced by docker-compose service labels:
+#   security-headers@file, rate-limit-global@file, compress@file, strip-server@file
+# =============================================================================
+
+http:
+  middlewares:
+    # -------------------------------------------------------------------------
+    # Security Headers — OWASP recommended
+    # -------------------------------------------------------------------------
+    security-headers:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        frameDeny: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+        referrerPolicy: "strict-origin-when-cross-origin"
+        permissionsPolicy: "camera=(), microphone=(), geolocation=(), payment=()"
+        contentSecurityPolicy: >-
+          default-src 'self';
+          script-src 'self' 'unsafe-inline' 'unsafe-eval';
+          style-src 'self' 'unsafe-inline';
+          img-src 'self' data: blob:;
+          font-src 'self' data:;
+          connect-src 'self';
+          frame-ancestors 'self';
+          base-uri 'self';
+          form-action 'self'
+        customResponseHeaders:
+          X-Robots-Tag: "noindex, nofollow"
+          X-Download-Options: "noopen"
+          X-Permitted-Cross-Domain-Policies: "none"
+
+    # -------------------------------------------------------------------------
+    # Global Rate Limiting — sliding window
+    # -------------------------------------------------------------------------
+    rate-limit-global:
+      rateLimit:
+        average: 100
+        burst: 200
+        period: 1m
+
+    # -------------------------------------------------------------------------
+    # Compression
+    # -------------------------------------------------------------------------
+    compress:
+      compress:
+        excludedContentTypes:
+          - "text/event-stream"
+
+    # -------------------------------------------------------------------------
+    # Strip Server Header
+    # -------------------------------------------------------------------------
+    strip-server:
+      headers:
+        customResponseHeaders:
+          Server: ""

@@ -1,0 +1,36 @@
+# =============================================================================
+# Traefik v3 — Internal Reverse Proxy Configuration
+# =============================================================================
+# Routes traffic between ClawdBot services. No public exposure.
+# Cloudflare Tunnel connects to Traefik's entrypoint.
+# =============================================================================
+
+api:
+  dashboard: false
+
+ping:
+  entryPoint: ping
+
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+  ping:
+    address: ":8082"
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: clawdbot_frontend
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+log:
+  level: INFO
+
+accessLog:
+  filePath: /dev/stdout
+  bufferingSize: 100

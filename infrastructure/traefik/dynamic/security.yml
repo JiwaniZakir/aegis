@@ -1,0 +1,52 @@
+# =============================================================================
+# Traefik Dynamic Configuration — Security Middleware
+# =============================================================================
+# Applied to all routers via Docker labels or file-based matching.
+# =============================================================================
+
+http:
+  middlewares:
+    # Security headers
+    security-headers:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        frameDeny: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "DENY"
+        referrerPolicy: "strict-origin-when-cross-origin"
+        permissionsPolicy: "camera=(), microphone=(), geolocation=(), payment=()"
+        customResponseHeaders:
+          X-Content-Type-Options: "nosniff"
+          X-Download-Options: "noopen"
+          X-Permitted-Cross-Domain-Policies: "none"
+          Cache-Control: "no-store, no-cache, must-revalidate"
+
+    # Rate limiting — global
+    rate-limit-global:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: 1m
+
+    # Rate limiting — auth endpoints (stricter)
+    rate-limit-auth:
+      rateLimit:
+        average: 10
+        burst: 5
+        period: 1m
+
+    # Compress responses
+    compress:
+      compress:
+        excludedContentTypes:
+          - "text/event-stream"
+
+    # Strip server info
+    strip-server:
+      headers:
+        customResponseHeaders:
+          Server: ""
+          X-Powered-By: ""

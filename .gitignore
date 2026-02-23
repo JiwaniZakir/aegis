@@ -1,0 +1,71 @@
+# Sensitive credentials — NEVER commit
+.env
+.env.*
+!.env.example
+secrets/*.yaml
+!secrets/.sops.yaml
+!secrets/*.enc.yaml
+
+# Docker secrets / encryption keys (unencrypted)
+secrets/*_key
+secrets/*_token
+secrets/*_secret
+secrets/*.key
+secrets/*-key.txt
+secrets/age-key.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Mobile
+mobile/.expo/
+mobile/ios/
+mobile/android/
+
+# IDE
+.vscode/
+.cursor/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backups
+backups/
+*.age
+*.tar.gz
+
+# Logs
+*.log
+logs/
+
+# Test / coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# uv
+.python-version
+
+# Playwright
+playwright-report/
+test-results/
+
+# Docker runtime
+docker-compose.extra.yml
+
+# Local symlinks
+openclaw

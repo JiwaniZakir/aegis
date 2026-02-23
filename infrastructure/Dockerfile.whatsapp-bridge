@@ -1,0 +1,39 @@
+# =============================================================================
+# ClawdBot WhatsApp Bridge — whatsapp-web.js sidecar
+# =============================================================================
+# Node.js container running whatsapp-web.js with Chromium.
+# =============================================================================
+
+FROM node:22-slim
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      chromium \
+      curl \
+      ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
+RUN useradd --create-home --shell /bin/false appuser
+
+WORKDIR /app
+COPY whatsapp-bridge/package.json whatsapp-bridge/package-lock.json* ./
+RUN npm ci
+
+COPY whatsapp-bridge/ .
+
+# Compile TypeScript to JavaScript
+RUN npx tsc
+
+# Remove devDependencies after build
+RUN npm prune --production
+
+USER appuser
+
+EXPOSE 3001
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -sf http://127.0.0.1:3001/status || exit 1
+
+CMD ["node", "dist/index.js"]
