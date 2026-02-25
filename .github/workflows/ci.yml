@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    name: Lint & Test (Python 3.12)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: aegis
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: aegis
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U aegis"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7.4-alpine
+        # No --requirepass so tests can connect without a password;
+        # conftest.py sets REDIS_PASSWORD=test and the rate-limiter is
+        # mocked, so no live Redis calls are made during the test suite.
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      # Minimal env so Settings() and conftest.py initialise without errors.
+      ENVIRONMENT: test
+      JWT_SECRET: test_jwt_secret_0123456789abcdef
+      ENCRYPTION_MASTER_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      POSTGRES_PASSWORD: test
+      REDIS_PASSWORD: test
+      DATABASE_URL: postgresql+asyncpg://aegis:test@localhost:5432/aegis
+      REDIS_URL: redis://:test@localhost:6379/0
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies (core + dev extras)
+        run: uv sync --extra dev
+
+      - name: Lint — ruff check
+        run: uv run ruff check .
+
+      - name: Format — ruff format --check
+        run: uv run ruff format --check .
+
+      - name: Test — pytest (excluding live integration tests)
+        run: uv run pytest --ignore=tests/test_live_stack.py -v
