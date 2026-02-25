@@ -1,5 +1,5 @@
 # =============================================================================
-# ClawdBot WhatsApp Bridge — whatsapp-web.js sidecar
+# Aegis WhatsApp Bridge — whatsapp-web.js sidecar
 # =============================================================================
 # Node.js container running whatsapp-web.js with Chromium.
 # =============================================================================

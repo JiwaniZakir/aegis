@@ -70,7 +70,7 @@ async def encrypt_credential(
     from app.models.credential import Credential
 
     session: AsyncSession = db_session  # type: ignore[assignment]
-    context = f"clawdbot:credentials:user:{user_id}:service:{key}"
+    context = f"aegis:credentials:user:{user_id}:service:{key}"
     encrypted = encrypt_field(value, master_key, context=context)
 
     stmt = select(Credential).where(
@@ -116,5 +116,5 @@ async def decrypt_credential(
         msg = f"No credential found for user={user_id}, service={key}"
         raise KeyError(msg)
 
-    context = f"clawdbot:credentials:user:{user_id}:service:{key}"
+    context = f"aegis:credentials:user:{user_id}:service:{key}"
     return decrypt_field(cred.encrypted_value, master_key, context=context)

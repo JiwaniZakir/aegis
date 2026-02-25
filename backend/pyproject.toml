@@ -1,7 +1,7 @@
 [project]
-name = "clawdbot"
+name = "aegis"
 version = "0.1.0"
-description = "ClawdBot personal intelligence platform — backend"
+description = "Aegis personal intelligence platform — backend"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115.0",
@@ -67,6 +67,9 @@ ignore = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "live: live integration tests against Docker stack (require running services)",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]

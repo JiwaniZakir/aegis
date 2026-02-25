@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Aegis",
+    "slug": "aegis",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#09090b"
+    },
+    "ios": {
+      "bundleIdentifier": "com.aegis.app",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Aegis needs microphone access for voice commands and dictation.",
+        "NSHealthShareUsageDescription": "Aegis reads your health metrics (steps, heart rate, sleep) to provide personalized insights.",
+        "NSSpeechRecognitionUsageDescription": "Aegis uses speech recognition for voice commands."
+      },
+      "entitlements": {
+        "com.apple.developer.healthkit": true,
+        "com.apple.developer.healthkit.access": ["health-records"]
+      }
+    },
+    "android": {
+      "package": "com.aegis.app",
+      "permissions": [
+        "RECORD_AUDIO"
+      ]
+    },
+    "plugins": [
+      "expo-av",
+      "expo-router"
+    ],
+    "scheme": "aegis",
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

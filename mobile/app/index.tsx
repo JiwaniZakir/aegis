@@ -67,6 +67,14 @@ export default function HomeScreen() {
           <Text style={styles.actionIcon}>CAL</Text>
           <Text style={styles.actionLabel}>Calendar</Text>
         </Pressable>
+
+        <Pressable
+          style={[styles.actionButton, { backgroundColor: "#1B3D2E" }]}
+          onPress={() => router.push("/health")}
+        >
+          <Text style={styles.actionIcon}>HP</Text>
+          <Text style={styles.actionLabel}>Health</Text>
+        </Pressable>
       </View>
 
       {/* Dashboard Summary */}

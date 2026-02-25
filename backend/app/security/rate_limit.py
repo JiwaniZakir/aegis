@@ -36,7 +36,12 @@ async def check_rate_limit(
     window_seconds: int = 60,
 ) -> None:
     """Sliding window rate limit check. Raises 429 if exceeded."""
-    client_ip = request.client.host if request.client else "unknown"
+    # Use X-Forwarded-For behind Traefik to get the real client IP
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        client_ip = forwarded.split(",")[0].strip()
+    else:
+        client_ip = request.client.host if request.client else "unknown"
     key = f"rate_limit:{client_ip}:{request.url.path}"
 
     try:

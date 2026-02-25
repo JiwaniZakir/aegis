@@ -51,7 +51,7 @@ class PearsonScraper(BaseIntegration):
         except ImportError as exc:
             msg = (
                 "playwright is not installed. "
-                "Install with: uv pip install 'clawdbot[integrations]'"
+                "Install with: uv pip install 'aegis[integrations]'"
             )
             raise PearsonScraperError(msg) from exc
 

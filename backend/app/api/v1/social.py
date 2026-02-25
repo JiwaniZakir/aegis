@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Literal
 
 import structlog
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import status as http_status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -73,7 +74,14 @@ async def cross_post(
     """Post content to multiple social platforms."""
     from app.services.social_poster import cross_post as do_cross_post
 
-    return await do_cross_post(db, str(user.id), body.text, platforms=body.platforms)
+    try:
+        return await do_cross_post(db, str(user.id), body.text, platforms=body.platforms)
+    except Exception as exc:
+        logger.error("cross_post_failed", error=type(exc).__name__)
+        raise HTTPException(
+            status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Social posting failed: {type(exc).__name__}",
+        ) from exc
 
 
 @router.post(
@@ -86,9 +94,16 @@ async def post_linkedin(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Post content to LinkedIn."""
+    from app.integrations.linkedin_client import LinkedInClientError
     from app.services.social_poster import post_to_linkedin
 
-    return await post_to_linkedin(db, str(user.id), body.text)
+    try:
+        return await post_to_linkedin(db, str(user.id), body.text)
+    except LinkedInClientError as exc:
+        raise HTTPException(
+            status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
 
 
 @router.post(
@@ -101,9 +116,16 @@ async def post_tweet(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Post a tweet to X (Twitter)."""
+    from app.integrations.x_client import XClientError
     from app.services.social_poster import post_to_x
 
-    return await post_to_x(db, str(user.id), body.text)
+    try:
+        return await post_to_x(db, str(user.id), body.text)
+    except XClientError as exc:
+        raise HTTPException(
+            status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
 
 
 @router.get("/social/history")
@@ -144,10 +166,16 @@ async def get_x_profile(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Get the authenticated X user profile."""
-    from app.integrations.x_client import XClient
+    from app.integrations.x_client import XClient, XClientError
 
-    client = XClient(str(user.id), db)
-    return await client.get_me()
+    try:
+        client = XClient(str(user.id), db)
+        return await client.get_me()
+    except XClientError as exc:
+        raise HTTPException(
+            status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
 
 
 @router.get(
@@ -161,10 +189,16 @@ async def search_x(
     db: AsyncSession = Depends(get_db),
 ) -> list[dict]:
     """Search recent tweets."""
-    from app.integrations.x_client import XClient
+    from app.integrations.x_client import XClient, XClientError
 
-    client = XClient(str(user.id), db)
-    return await client.search_tweets(query, max_results=max_results)
+    try:
+        client = XClient(str(user.id), db)
+        return await client.search_tweets(query, max_results=max_results)
+    except XClientError as exc:
+        raise HTTPException(
+            status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
 
 
 # ---------------------------------------------------------------------------

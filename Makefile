@@ -1,5 +1,5 @@
 # =============================================================================
-# ClawdBot — Makefile
+# Aegis — Makefile
 # =============================================================================
 
 COMPOSE := docker compose
@@ -34,7 +34,7 @@ health:
 	@$(COMPOSE) ps
 	@echo ""
 	@echo "=== PostgreSQL ==="
-	@$(COMPOSE) exec postgres pg_isready -U clawdbot || echo "UNHEALTHY"
+	@$(COMPOSE) exec postgres pg_isready -U aegis || echo "UNHEALTHY"
 	@echo ""
 	@echo "=== Redis ==="
 	@$(COMPOSE) exec redis redis-cli -a "$${REDIS_PASSWORD}" ping || echo "UNHEALTHY"

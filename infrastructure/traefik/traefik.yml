@@ -1,7 +1,7 @@
 # =============================================================================
 # Traefik v3 — Internal Reverse Proxy Configuration
 # =============================================================================
-# Routes traffic between ClawdBot services. No public exposure.
+# Routes traffic between Aegis services. No public exposure.
 # Cloudflare Tunnel connects to Traefik's entrypoint.
 # =============================================================================
 
@@ -23,7 +23,7 @@ providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
-    network: clawdbot_frontend
+    network: aegis_frontend
   file:
     directory: /etc/traefik/dynamic
     watch: true

@@ -22,6 +22,7 @@ interface AuthTokens {
 	access_token: string;
 	refresh_token: string;
 	token_type: string;
+	expires_in: number;
 }
 
 interface User {
@@ -63,11 +64,36 @@ interface Subscription {
 	next_charge: string;
 }
 
-interface FinanceSnapshot {
+interface BalancesResponse {
+	accounts: { name: string; type: string; balance: number; institution: string }[];
 	total_balance: number;
-	monthly_spending: number;
-	spending_trend: SpendingTrend[];
-	accounts: Account[];
+	last_synced: string;
+}
+
+interface TransactionsResponse {
+	transactions: {
+		id: string;
+		date: string;
+		description: string;
+		amount: number;
+		category: string;
+		merchant: string | null;
+		account_name: string;
+	}[];
+	count: number;
+	limit: number;
+	offset: number;
+}
+
+interface SubscriptionsResponse {
+	recurring: {
+		description: string;
+		amount: number;
+		frequency: string;
+		next_date: string;
+		category: string;
+	}[];
+	total_monthly: number;
 }
 
 // ---- Email types ----
@@ -184,7 +210,10 @@ interface DailyBriefing {
 	date: string;
 	summary: string;
 	calendar_events: CalendarEvent[];
-	finance_snapshot: FinanceSnapshot;
+	finance_snapshot: {
+		total_balance: number;
+		monthly_spending: number;
+	};
 	email_highlights: EmailDigest[];
 	health_summary: HealthMetrics;
 	content_status: {
@@ -307,7 +336,9 @@ export type {
 	Transaction,
 	SpendingTrend,
 	Subscription,
-	FinanceSnapshot,
+	BalancesResponse,
+	TransactionsResponse,
+	SubscriptionsResponse,
 	EmailDigest,
 	EmailWeeklyReport,
 	SpamAuditItem,
@@ -363,6 +394,8 @@ class ApiClientError extends Error {
 	}
 }
 
+export { ApiClientError };
+
 async function apiFetch<T>(
 	path: string,
 	options: RequestInit = {},
@@ -403,6 +436,7 @@ async function apiFetch<T>(
 }
 
 // ---- API methods ----
+// All paths match the actual backend router definitions.
 export const api = {
 	// Auth
 	auth: {
@@ -418,120 +452,165 @@ export const api = {
 				body: JSON.stringify({ refresh_token: refreshToken }),
 			});
 		},
+		logout(refreshToken?: string) {
+			return apiFetch<void>("/api/v1/auth/logout", {
+				method: "POST",
+				body: JSON.stringify({ refresh_token: refreshToken ?? null }),
+			});
+		},
 		me() {
 			return apiFetch<User>("/api/v1/auth/me");
 		},
 	},
 
-	// Finance
+	// Finance — matches backend/app/api/v1/finance.py
 	finance: {
-		getSnapshot() {
-			return apiFetch<FinanceSnapshot>("/api/v1/finance/snapshot");
-		},
-		getAccounts() {
-			return apiFetch<Account[]>("/api/v1/finance/accounts");
+		getBalances() {
+			return apiFetch<BalancesResponse>("/api/v1/finance/balances");
 		},
 		getTransactions(params?: { limit?: number; offset?: number }) {
 			const query = new URLSearchParams();
 			if (params?.limit) query.set("limit", String(params.limit));
 			if (params?.offset) query.set("offset", String(params.offset));
 			const qs = query.toString();
-			return apiFetch<Transaction[]>(
+			return apiFetch<TransactionsResponse>(
 				`/api/v1/finance/transactions${qs ? `?${qs}` : ""}`,
 			);
 		},
-		getSpendingTrend(days?: number) {
-			const qs = days ? `?days=${days}` : "";
-			return apiFetch<SpendingTrend[]>(
-				`/api/v1/finance/spending-trend${qs}`,
+		getSubscriptions() {
+			return apiFetch<SubscriptionsResponse>("/api/v1/finance/subscriptions");
+		},
+		getPortfolio() {
+			return apiFetch<{ holdings: object[]; total_value: number }>(
+				"/api/v1/finance/portfolio",
 			);
 		},
-		getSubscriptions() {
-			return apiFetch<Subscription[]>("/api/v1/finance/subscriptions");
+		getPortfolioBrief() {
+			return apiFetch<{ total_value: number; top_holdings: object[]; daily_change_pct: number }>(
+				"/api/v1/finance/portfolio/brief",
+			);
+		},
+		checkAffordability(body: { item: string; estimated_cost: number }) {
+			return apiFetch<{ affordable: boolean; analysis: string }>(
+				"/api/v1/finance/affordability",
+				{ method: "POST", body: JSON.stringify(body) },
+			);
 		},
 	},
 
-	// Email
+	// Email — matches backend/app/api/v1/email.py
 	email: {
-		getDigests(params?: { limit?: number }) {
-			const qs = params?.limit ? `?limit=${params.limit}` : "";
-			return apiFetch<EmailDigest[]>(`/api/v1/email/digests${qs}`);
+		getDigest() {
+			return apiFetch<{ emails: EmailDigest[]; generated_at: string }>(
+				"/api/v1/email/digest",
+			);
 		},
 		getWeeklyReport() {
-			return apiFetch<EmailWeeklyReport>("/api/v1/email/weekly-report");
+			return apiFetch<EmailWeeklyReport>("/api/v1/email/weekly");
 		},
 		getSpamAudit() {
 			return apiFetch<SpamAuditItem[]>("/api/v1/email/spam-audit");
 		},
 		getAssignmentReminders() {
-			return apiFetch<AssignmentReminder[]>("/api/v1/email/assignment-reminders");
+			return apiFetch<AssignmentReminder[]>("/api/v1/assignments/reminders");
+		},
+		getUpcomingAssignments() {
+			return apiFetch<object[]>("/api/v1/assignments/upcoming");
+		},
+		getOverdueAssignments() {
+			return apiFetch<object[]>("/api/v1/assignments/overdue");
 		},
 	},
 
-	// Calendar
+	// Calendar — matches backend/app/api/v1/calendar.py
 	calendar: {
-		getEvents(params?: { start?: string; end?: string }) {
-			const query = new URLSearchParams();
-			if (params?.start) query.set("start", params.start);
-			if (params?.end) query.set("end", params.end);
-			const qs = query.toString();
-			return apiFetch<CalendarEvent[]>(
-				`/api/v1/calendar/events${qs ? `?${qs}` : ""}`,
+		getTodayEvents() {
+			return apiFetch<CalendarEvent[]>("/api/v1/calendar/today");
+		},
+		getEvents(params?: { days?: number }) {
+			const qs = params?.days ? `?days=${params.days}` : "";
+			return apiFetch<{ events: CalendarEvent[]; count: number; days: number }>(
+				`/api/v1/calendar/events${qs}`,
 			);
 		},
-		getMeetingTranscriptions(params?: { limit?: number }) {
-			const qs = params?.limit ? `?limit=${params.limit}` : "";
-			return apiFetch<MeetingTranscription[]>(
-				`/api/v1/calendar/transcriptions${qs}`,
+		getMeetingSummary(meetingId: string) {
+			return apiFetch<MeetingTranscription>(
+				`/api/v1/meetings/${meetingId}/summary`,
 			);
 		},
 	},
 
-	// Contacts
+	// Contacts — matches backend/app/api/v1/calendar.py (contacts are in calendar router)
 	contacts: {
-		getGraph() {
-			return apiFetch<ContactGraph>("/api/v1/contacts/graph");
-		},
-		search(q: string) {
-			return apiFetch<Contact[]>(
-				`/api/v1/contacts/search?q=${encodeURIComponent(q)}`,
+		getGraph(centerId: string, depth?: number) {
+			const query = new URLSearchParams({ center_id: centerId });
+			if (depth) query.set("depth", String(depth));
+			return apiFetch<ContactGraph>(
+				`/api/v1/contacts/graph?${query.toString()}`,
 			);
 		},
-		getOutreachSuggestions() {
-			return apiFetch<Contact[]>("/api/v1/contacts/outreach-suggestions");
+		getSuggestOutreach(limit?: number) {
+			const qs = limit ? `?limit=${limit}` : "";
+			return apiFetch<Contact[]>(`/api/v1/contacts/suggest-outreach${qs}`);
+		},
+		create(body: { name: string; source: string; email?: string; phone?: string }) {
+			return apiFetch<Contact>("/api/v1/contacts", {
+				method: "POST",
+				body: JSON.stringify(body),
+			});
+		},
+		getShortestPath(fromId: string, toId: string) {
+			return apiFetch<{ path: object[]; hops: number }>(
+				`/api/v1/contacts/shortest-path?from_id=${encodeURIComponent(fromId)}&to_id=${encodeURIComponent(toId)}`,
+			);
 		},
 	},
 
-	// Social
+	// Social — matches backend/app/api/v1/social.py
 	social: {
-		getPosts(params?: { platform?: string; limit?: number }) {
+		post(body: { content: string; platforms: string[] }) {
+			return apiFetch<{ results: object[] }>("/api/v1/social/post", {
+				method: "POST",
+				body: JSON.stringify(body),
+			});
+		},
+		postLinkedIn(body: { content: string }) {
+			return apiFetch<object>("/api/v1/social/linkedin", {
+				method: "POST",
+				body: JSON.stringify(body),
+			});
+		},
+		postX(body: { content: string }) {
+			return apiFetch<object>("/api/v1/social/x", {
+				method: "POST",
+				body: JSON.stringify(body),
+			});
+		},
+		getHistory(params?: { platform?: string; limit?: number }) {
 			const query = new URLSearchParams();
 			if (params?.platform) query.set("platform", params.platform);
 			if (params?.limit) query.set("limit", String(params.limit));
 			const qs = query.toString();
 			return apiFetch<SocialPost[]>(
-				`/api/v1/social/posts${qs ? `?${qs}` : ""}`,
+				`/api/v1/social/history${qs ? `?${qs}` : ""}`,
 			);
 		},
-		quickPost(body: QuickPostRequest) {
-			return apiFetch<QuickPostResponse>("/api/v1/social/quick-post", {
-				method: "POST",
-				body: JSON.stringify(body),
-			});
-		},
-		getEngagementMetrics(days?: number) {
+		getEngagement(days?: number) {
 			const qs = days ? `?days=${days}` : "";
-			return apiFetch<EngagementMetrics[]>(
-				`/api/v1/social/engagement${qs}`,
-			);
+			return apiFetch<EngagementMetrics>(`/api/v1/social/engagement${qs}`);
 		},
 		getNewsHeadlines(params?: { limit?: number }) {
 			const qs = params?.limit ? `?limit=${params.limit}` : "";
-			return apiFetch<NewsHeadline[]>(`/api/v1/social/news${qs}`);
+			return apiFetch<NewsHeadline[]>(`/api/v1/news/headlines${qs}`);
+		},
+		searchNews(q: string) {
+			return apiFetch<NewsHeadline[]>(
+				`/api/v1/news/search?q=${encodeURIComponent(q)}`,
+			);
 		},
 	},
 
-	// Content
+	// Content — matches backend/app/api/v1/content.py
 	content: {
 		generate(body: GenerateContentRequest) {
 			return apiFetch<ContentDraft>("/api/v1/content/generate", {
@@ -539,75 +618,103 @@ export const api = {
 				body: JSON.stringify(body),
 			});
 		},
-		getDrafts() {
-			return apiFetch<ContentDraft[]>("/api/v1/content/drafts");
+		getDrafts(platform?: string) {
+			const qs = platform ? `?platform=${platform}` : "";
+			return apiFetch<ContentDraft[]>(`/api/v1/content/drafts${qs}`);
 		},
-		publishDraft(id: string) {
-			return apiFetch<ContentDraft>(`/api/v1/content/drafts/${id}/publish`, {
+		publishDraft(postId: string) {
+			return apiFetch<ContentDraft>("/api/v1/content/publish", {
 				method: "POST",
+				body: JSON.stringify({ post_id: postId }),
 			});
 		},
-		getHistory() {
-			return apiFetch<ContentDraft[]>("/api/v1/content/history");
-		},
-		getEngagementMetrics(days?: number) {
-			const qs = days ? `?days=${days}` : "";
-			return apiFetch<EngagementMetrics[]>(
-				`/api/v1/content/engagement${qs}`,
-			);
+		ingest(body: { text: string; source?: string; title?: string }) {
+			return apiFetch<{ id: string; chunks: number }>("/api/v1/content/ingest", {
+				method: "POST",
+				body: JSON.stringify(body),
+			});
 		},
 	},
 
-	// Health
+	// Health — matches backend/app/api/v1/health.py (prefix: /health-data/)
 	health: {
-		getMetrics(params?: { days?: number }) {
+		getSummary() {
+			return apiFetch<HealthMetrics>("/api/v1/health-data/summary");
+		},
+		getTrends(params?: { days?: number }) {
 			const qs = params?.days ? `?days=${params.days}` : "";
-			return apiFetch<HealthMetrics[]>(`/api/v1/health/metrics${qs}`);
+			return apiFetch<{ trends: HealthMetrics[]; days: number }>(
+				`/api/v1/health-data/trends${qs}`,
+			);
 		},
 		getGoals() {
-			return apiFetch<HealthGoals>("/api/v1/health/goals");
+			return apiFetch<HealthGoals>("/api/v1/health-data/goals");
 		},
-		getLatest() {
-			return apiFetch<HealthMetrics>("/api/v1/health/latest");
+		getWeekly() {
+			return apiFetch<object>("/api/v1/health-data/weekly");
+		},
+		getMacros() {
+			return apiFetch<object>("/api/v1/health-data/macros");
+		},
+		getRecommendations() {
+			return apiFetch<object>("/api/v1/health-data/recommendations");
+		},
+		ingestAppleHealth(body: object) {
+			return apiFetch<object>("/api/v1/health-data/apple", {
+				method: "POST",
+				body: JSON.stringify(body),
+			});
+		},
+		generateGroceryList(body: object) {
+			return apiFetch<object>("/api/v1/health-data/grocery-list", {
+				method: "POST",
+				body: JSON.stringify(body),
+			});
 		},
 	},
 
-	// Productivity
+	// Productivity — matches backend/app/api/v1/health.py (productivity section)
 	productivity: {
-		getMetrics(params?: { days?: number }) {
-			const qs = params?.days ? `?days=${params.days}` : "";
-			return apiFetch<ProductivityMetrics[]>(
-				`/api/v1/productivity/metrics${qs}`,
+		getSummary() {
+			return apiFetch<ProductivityMetrics>("/api/v1/productivity/summary");
+		},
+		getDaily() {
+			return apiFetch<ProductivityMetrics>("/api/v1/productivity/daily");
+		},
+		getTrends() {
+			return apiFetch<ProductivityMetrics[]>("/api/v1/productivity/trends");
+		},
+		getWeekly() {
+			return apiFetch<ProductivityWeeklyReport>("/api/v1/productivity/weekly");
+		},
+		getAppUsage() {
+			return apiFetch<{ name: string; minutes: number }[]>(
+				"/api/v1/productivity/app-usage",
 			);
 		},
-		getLatest() {
-			return apiFetch<ProductivityMetrics>("/api/v1/productivity/latest");
-		},
-		getWeeklyReport() {
-			return apiFetch<ProductivityWeeklyReport>(
-				"/api/v1/productivity/weekly-report",
-			);
+		ingestScreenTime(body: object) {
+			return apiFetch<object>("/api/v1/productivity/screen-time", {
+				method: "POST",
+				body: JSON.stringify(body),
+			});
 		},
 	},
 
-	// Briefing
+	// Briefing — matches backend/app/api/v1/calendar.py (briefing section)
 	briefing: {
 		getToday() {
 			return apiFetch<DailyBriefing>("/api/v1/briefing/today");
 		},
-		getByDate(date: string) {
-			return apiFetch<DailyBriefing>(`/api/v1/briefing/${date}`);
-		},
 	},
 
-	// Security
+	// Security — matches backend/app/api/v1/security.py (new router)
 	security: {
 		getAuditLog(params?: { limit?: number; offset?: number }) {
 			const query = new URLSearchParams();
 			if (params?.limit) query.set("limit", String(params.limit));
 			if (params?.offset) query.set("offset", String(params.offset));
 			const qs = query.toString();
-			return apiFetch<AuditLogEntry[]>(
+			return apiFetch<{ entries: AuditLogEntry[]; total: number }>(
 				`/api/v1/security/audit-log${qs ? `?${qs}` : ""}`,
 			);
 		},
@@ -618,6 +725,12 @@ export const api = {
 			return apiFetch<void>(`/api/v1/security/sessions/${id}`, {
 				method: "DELETE",
 			});
+		},
+		getFailedLogins(params?: { limit?: number }) {
+			const qs = params?.limit ? `?limit=${params.limit}` : "";
+			return apiFetch<AuditLogEntry[]>(
+				`/api/v1/security/failed-logins${qs}`,
+			);
 		},
 		getTwoFactorStatus() {
 			return apiFetch<TwoFactorStatus>("/api/v1/security/2fa/status");

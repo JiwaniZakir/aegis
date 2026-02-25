@@ -1,9 +1,9 @@
 /**
- * ClawdBot WhatsApp Bridge — whatsapp-web.js sidecar.
+ * Aegis WhatsApp Bridge — whatsapp-web.js sidecar.
  *
  * Connects to WhatsApp Web via Puppeteer, exposes a REST API for
  * sending/receiving messages, and forwards incoming messages to the
- * ClawdBot API for processing.
+ * Aegis API for processing.
  */
 
 import express from "express";

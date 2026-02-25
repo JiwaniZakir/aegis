@@ -69,7 +69,7 @@ class WebCrawler(BaseIntegration):
         async with httpx.AsyncClient(
             timeout=30,
             follow_redirects=True,
-            headers={"User-Agent": "ClawdBot/1.0 (Personal Research Assistant)"},
+            headers={"User-Agent": "Aegis/1.0 (Personal Research Assistant)"},
         ) as client:
             response = await client.get(url)
             response.raise_for_status()

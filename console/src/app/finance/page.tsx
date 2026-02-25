@@ -2,240 +2,69 @@
 
 import { useQuery } from "@tanstack/react-query";
 import {
-	AreaChart,
-	Area,
-	XAxis,
-	YAxis,
-	CartesianGrid,
-	Tooltip,
-	ResponsiveContainer,
-} from "recharts";
-import { Wallet, TrendingDown, CreditCard, RefreshCw } from "lucide-react";
+	DollarSign,
+	CreditCard,
+	RefreshCw,
+	Building2,
+	Landmark,
+	Wallet,
+} from "lucide-react";
 import { api } from "@/lib/api";
-import type { Account, Transaction, Subscription, SpendingTrend } from "@/lib/api";
+import { MetricCard } from "@/components/metric-card";
+import { PageHeader } from "@/components/page-header";
+import { MetricCardSkeleton, TableSkeleton } from "@/components/loading-skeleton";
+import { QueryError } from "@/components/query-error";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { PieChart, Pie, Cell } from "recharts";
+import {
+	ChartContainer,
+	ChartTooltip,
+	ChartTooltipContent,
+	type ChartConfig,
+} from "@/components/ui/chart";
 
-function AccountCard({ account }: { account: Account }) {
-	const formatted = new Intl.NumberFormat("en-US", {
+function formatCurrency(n: number) {
+	return new Intl.NumberFormat("en-US", {
 		style: "currency",
 		currency: "USD",
-	}).format(account.balance);
-
-	return (
-		<div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-			<div className="flex items-center justify-between">
-				<p className="text-sm text-neutral-400">{account.institution}</p>
-				<span className="rounded bg-neutral-800 px-2 py-0.5 text-xs text-neutral-400">
-					{account.type}
-				</span>
-			</div>
-			<p className="mt-1 text-sm font-medium text-neutral-200">
-				{account.name}
-			</p>
-			<p className="mt-2 text-xl font-semibold text-neutral-50">
-				{formatted}
-			</p>
-			<p className="mt-1 text-xs text-neutral-500">
-				Synced {new Date(account.last_synced).toLocaleDateString()}
-			</p>
-		</div>
-	);
+		minimumFractionDigits: 2,
+	}).format(n);
 }
 
-function SpendingChart({ data }: { data: SpendingTrend[] }) {
-	return (
-		<div className="rounded-lg border border-neutral-800 bg-neutral-900 p-5">
-			<div className="mb-4 flex items-center gap-2">
-				<TrendingDown className="h-4 w-4 text-neutral-400" />
-				<h2 className="text-lg font-semibold text-neutral-100">
-					Spending Trend
-				</h2>
-			</div>
-			<div className="h-64">
-				<ResponsiveContainer width="100%" height="100%">
-					<AreaChart data={data}>
-						<defs>
-							<linearGradient
-								id="spendGradient"
-								x1="0"
-								y1="0"
-								x2="0"
-								y2="1"
-							>
-								<stop
-									offset="5%"
-									stopColor="#6366f1"
-									stopOpacity={0.3}
-								/>
-								<stop
-									offset="95%"
-									stopColor="#6366f1"
-									stopOpacity={0}
-								/>
-							</linearGradient>
-						</defs>
-						<CartesianGrid
-							strokeDasharray="3 3"
-							stroke="#262626"
-						/>
-						<XAxis
-							dataKey="date"
-							stroke="#525252"
-							tick={{ fill: "#737373", fontSize: 12 }}
-							tickFormatter={(v: string) =>
-								new Date(v).toLocaleDateString([], {
-									month: "short",
-									day: "numeric",
-								})
-							}
-						/>
-						<YAxis
-							stroke="#525252"
-							tick={{ fill: "#737373", fontSize: 12 }}
-							tickFormatter={(v: number) => `$${v}`}
-						/>
-						<Tooltip
-							contentStyle={{
-								backgroundColor: "#171717",
-								border: "1px solid #262626",
-								borderRadius: "8px",
-								color: "#e5e5e5",
-							}}
-							formatter={(value: number) => [
-								`$${value.toFixed(2)}`,
-								"Spent",
-							]}
-							labelFormatter={(label: string) =>
-								new Date(label).toLocaleDateString()
-							}
-						/>
-						<Area
-							type="monotone"
-							dataKey="amount"
-							stroke="#6366f1"
-							fillOpacity={1}
-							fill="url(#spendGradient)"
-						/>
-					</AreaChart>
-				</ResponsiveContainer>
-			</div>
-		</div>
-	);
+function formatCurrencyShort(n: number) {
+	return new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: "USD",
+		maximumFractionDigits: 0,
+	}).format(n);
 }
 
-function TransactionsTable({
-	transactions,
-}: { transactions: Transaction[] }) {
-	return (
-		<div className="rounded-lg border border-neutral-800 bg-neutral-900 p-5">
-			<div className="mb-4 flex items-center gap-2">
-				<CreditCard className="h-4 w-4 text-neutral-400" />
-				<h2 className="text-lg font-semibold text-neutral-100">
-					Recent Transactions
-				</h2>
-			</div>
-			<div className="overflow-x-auto">
-				<table className="w-full text-sm">
-					<thead>
-						<tr className="border-b border-neutral-800 text-left text-neutral-500">
-							<th className="pb-2 pr-4 font-medium">Date</th>
-							<th className="pb-2 pr-4 font-medium">
-								Description
-							</th>
-							<th className="pb-2 pr-4 font-medium">Category</th>
-							<th className="pb-2 text-right font-medium">
-								Amount
-							</th>
-						</tr>
-					</thead>
-					<tbody className="divide-y divide-neutral-800/50">
-						{transactions.map((tx) => (
-							<tr key={tx.id}>
-								<td className="py-2 pr-4 text-neutral-400">
-									{new Date(tx.date).toLocaleDateString()}
-								</td>
-								<td className="py-2 pr-4 text-neutral-200">
-									{tx.description}
-								</td>
-								<td className="py-2 pr-4">
-									<span className="rounded bg-neutral-800 px-2 py-0.5 text-xs text-neutral-400">
-										{tx.category}
-									</span>
-								</td>
-								<td
-									className={`py-2 text-right font-medium ${
-										tx.amount < 0
-											? "text-red-400"
-											: "text-emerald-400"
-									}`}
-								>
-									{tx.amount < 0 ? "-" : "+"}$
-									{Math.abs(tx.amount).toFixed(2)}
-								</td>
-							</tr>
-						))}
-					</tbody>
-				</table>
-			</div>
-		</div>
-	);
-}
-
-function SubscriptionList({
-	subscriptions,
-}: { subscriptions: Subscription[] }) {
-	return (
-		<div className="rounded-lg border border-neutral-800 bg-neutral-900 p-5">
-			<div className="mb-4 flex items-center gap-2">
-				<RefreshCw className="h-4 w-4 text-neutral-400" />
-				<h2 className="text-lg font-semibold text-neutral-100">
-					Subscriptions
-				</h2>
-			</div>
-			<div className="space-y-3">
-				{subscriptions.map((sub) => (
-					<div
-						key={sub.id}
-						className="flex items-center justify-between rounded-md border border-neutral-800 px-3 py-2"
-					>
-						<div>
-							<p className="text-sm font-medium text-neutral-200">
-								{sub.name}
-							</p>
-							<p className="text-xs text-neutral-500">
-								{sub.frequency} &middot; Next:{" "}
-								{new Date(sub.next_charge).toLocaleDateString()}
-							</p>
-						</div>
-						<p className="text-sm font-semibold text-neutral-100">
-							${sub.amount.toFixed(2)}
-						</p>
-					</div>
-				))}
-				{subscriptions.length === 0 && (
-					<p className="text-center text-sm text-neutral-500">
-						No subscriptions detected.
-					</p>
-				)}
-			</div>
-		</div>
-	);
-}
-
-function SkeletonBlock({ className }: { className?: string }) {
-	return (
-		<div
-			className={`animate-pulse rounded-lg border border-neutral-800 bg-neutral-900 p-5 ${className ?? ""}`}
-		>
-			<div className="h-5 w-40 rounded bg-neutral-800" />
-			<div className="mt-4 h-48 rounded bg-neutral-800" />
-		</div>
-	);
+function accountIcon(type: string) {
+	switch (type.toLowerCase()) {
+		case "checking":
+		case "savings":
+			return Landmark;
+		case "credit":
+			return CreditCard;
+		case "investment":
+		case "brokerage":
+			return Wallet;
+		default:
+			return Building2;
+	}
 }
 
 export default function FinancePage() {
-	const snapshotQuery = useQuery({
-		queryKey: ["finance", "snapshot"],
-		queryFn: () => api.finance.getSnapshot(),
+	const balancesQuery = useQuery({
+		queryKey: ["finance", "balances"],
+		queryFn: () => api.finance.getBalances(),
 	});
 
 	const transactionsQuery = useQuery({
@@ -243,86 +72,325 @@ export default function FinancePage() {
 		queryFn: () => api.finance.getTransactions({ limit: 20 }),
 	});
 
-	const spendingQuery = useQuery({
-		queryKey: ["finance", "spending-trend"],
-		queryFn: () => api.finance.getSpendingTrend(30),
-	});
-
 	const subscriptionsQuery = useQuery({
 		queryKey: ["finance", "subscriptions"],
 		queryFn: () => api.finance.getSubscriptions(),
 	});
 
-	const snapshot = snapshotQuery.data;
-	const loading =
-		snapshotQuery.isLoading ||
-		transactionsQuery.isLoading ||
-		spendingQuery.isLoading;
+	const balances = balancesQuery.data;
+	const transactions = transactionsQuery.data;
+	const subscriptions = subscriptionsQuery.data;
 
 	return (
 		<div className="mx-auto max-w-6xl space-y-6">
-			<div className="flex items-center gap-3">
-				<Wallet className="h-6 w-6 text-neutral-400" />
-				<h1 className="text-2xl font-bold text-neutral-50">Finance</h1>
+			<PageHeader title="Finance" description="Account balances and spending" />
+
+			{/* Metric cards */}
+			<div className="grid gap-4 sm:grid-cols-2">
+				{balancesQuery.isLoading || subscriptionsQuery.isLoading ? (
+					<>
+						<MetricCardSkeleton />
+						<MetricCardSkeleton />
+					</>
+				) : balancesQuery.isError || subscriptionsQuery.isError ? (
+					<div className="sm:col-span-2">
+						<QueryError message="Failed to load financial overview." onRetry={() => { balancesQuery.refetch(); subscriptionsQuery.refetch(); }} />
+					</div>
+				) : (
+					<>
+						<MetricCard
+							label="Total Balance"
+							value={
+								balances
+									? formatCurrencyShort(balances.total_balance)
+									: "--"
+							}
+							icon={DollarSign}
+						/>
+						<MetricCard
+							label="Monthly Subscriptions"
+							value={
+								subscriptions
+									? formatCurrency(subscriptions.total_monthly)
+									: "--"
+							}
+							icon={RefreshCw}
+						/>
+					</>
+				)}
 			</div>
 
-			{/* Balance overview */}
-			{loading ? (
-				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-					{Array.from({ length: 4 }).map((_, i) => (
-						<div
-							key={`skel-${i.toString()}`}
-							className="animate-pulse rounded-lg border border-neutral-800 bg-neutral-900 p-4"
-						>
-							<div className="h-4 w-20 rounded bg-neutral-800" />
-							<div className="mt-3 h-6 w-28 rounded bg-neutral-800" />
+			{/* Accounts */}
+			{balancesQuery.isLoading ? (
+				<TableSkeleton rows={3} />
+			) : balancesQuery.isError ? (
+				<QueryError message="Failed to load accounts." onRetry={() => balancesQuery.refetch()} />
+			) : balances && balances.accounts.length > 0 ? (
+				<Card>
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<Building2 className="h-4 w-4 text-muted-foreground" />
+							Accounts
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<div className="space-y-0">
+							{balances.accounts.map((account, index) => {
+								const Icon = accountIcon(account.type);
+								return (
+									<div key={`${account.name}-${account.institution}`}>
+										{index > 0 && <Separator className="my-0" />}
+										<div className="flex items-center gap-3 py-3">
+											<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+												<Icon className="h-4 w-4 text-muted-foreground" />
+											</div>
+											<div className="min-w-0 flex-1">
+												<p className="truncate text-sm font-medium">
+													{account.name}
+												</p>
+												<p className="text-xs text-muted-foreground">
+													{account.institution} · {account.type}
+												</p>
+											</div>
+											<p className="shrink-0 text-sm font-semibold tabular-nums">
+												{formatCurrency(account.balance)}
+											</p>
+										</div>
+									</div>
+								);
+							})}
 						</div>
-					))}
-				</div>
-			) : snapshot ? (
-				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-					{snapshot.accounts.map((account) => (
-						<AccountCard key={account.id} account={account} />
-					))}
-				</div>
+						{balances.last_synced && (
+							<p className="mt-2 text-xs text-muted-foreground">
+								Last synced {new Date(balances.last_synced).toLocaleString()}
+							</p>
+						)}
+					</CardContent>
+				</Card>
 			) : (
-				<div className="rounded-lg border border-neutral-800 bg-neutral-900 p-8 text-center">
-					<p className="text-sm text-neutral-500">
-						Connect your accounts to see balances.
-					</p>
-				</div>
+				<Card>
+					<CardContent className="flex items-center justify-center py-12">
+						<p className="text-sm text-muted-foreground">
+							Connect your accounts to see balances.
+						</p>
+					</CardContent>
+				</Card>
 			)}
 
-			{/* Spending chart */}
-			{spendingQuery.isLoading ? (
-				<SkeletonBlock />
-			) : spendingQuery.data && spendingQuery.data.length > 0 ? (
-				<SpendingChart data={spendingQuery.data} />
-			) : null}
+			{/* Spending by Category */}
+			{transactions && transactions.transactions.length > 0 && (() => {
+				const CHART_COLORS = [
+					"hsl(var(--chart-1))",
+					"hsl(var(--chart-2))",
+					"hsl(var(--chart-3))",
+					"hsl(var(--chart-4))",
+					"hsl(var(--chart-5))",
+				];
+				const categoryTotals = transactions.transactions
+					.filter((tx) => tx.amount < 0)
+					.reduce<Record<string, number>>((acc, tx) => {
+						const cat = tx.category || "Other";
+						acc[cat] = (acc[cat] ?? 0) + Math.abs(tx.amount);
+						return acc;
+					}, {});
+				const pieData = Object.entries(categoryTotals)
+					.map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
+					.sort((a, b) => b.value - a.value);
+				const spendingChartConfig: ChartConfig = Object.fromEntries(
+					pieData.map(({ name }, i) => [
+						name,
+						{ label: name, color: CHART_COLORS[i % CHART_COLORS.length] },
+					])
+				);
+				return pieData.length > 0 ? (
+					<Card>
+						<CardHeader>
+							<CardTitle className="flex items-center gap-2">
+								<CreditCard className="h-4 w-4 text-muted-foreground" />
+								Spending by Category
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<ChartContainer config={spendingChartConfig} className="mx-auto aspect-square max-h-[300px]">
+								<PieChart>
+									<ChartTooltip content={<ChartTooltipContent hideLabel formatter={(value) => formatCurrency(Number(value))} />} />
+									<Pie
+										data={pieData}
+										dataKey="value"
+										nameKey="name"
+										cx="50%"
+										cy="50%"
+										outerRadius={100}
+										label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+									>
+										{pieData.map((entry, index) => (
+											<Cell
+												key={entry.name}
+												fill={CHART_COLORS[index % CHART_COLORS.length]}
+											/>
+										))}
+									</Pie>
+								</PieChart>
+							</ChartContainer>
+						</CardContent>
+					</Card>
+				) : null;
+			})()}
 
-			<div className="grid gap-6 lg:grid-cols-2">
-				{/* Transactions */}
-				{transactionsQuery.isLoading ? (
-					<SkeletonBlock />
-				) : transactionsQuery.data &&
-					transactionsQuery.data.length > 0 ? (
-					<TransactionsTable transactions={transactionsQuery.data} />
-				) : (
-					<div className="rounded-lg border border-neutral-800 bg-neutral-900 p-8 text-center">
-						<p className="text-sm text-neutral-500">
-							No transactions yet.
-						</p>
-					</div>
-				)}
+			{/* Transactions + Subscriptions */}
+			<div className="grid gap-6 lg:grid-cols-3">
+				{/* Transactions - takes 2 cols */}
+				<div className="lg:col-span-2">
+					{transactionsQuery.isLoading ? (
+						<TableSkeleton rows={8} />
+					) : transactionsQuery.isError ? (
+						<QueryError message="Failed to load transactions." onRetry={() => transactionsQuery.refetch()} />
+					) : transactions && transactions.transactions.length > 0 ? (
+						<Card>
+							<CardHeader>
+								<CardTitle className="flex items-center gap-2">
+									<CreditCard className="h-4 w-4 text-muted-foreground" />
+									Recent Transactions
+								</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<div className="overflow-x-auto">
+									<table className="w-full text-sm">
+										<thead>
+											<tr className="border-b text-left">
+												<th className="pb-3 pr-4 text-xs font-medium text-muted-foreground">
+													Date
+												</th>
+												<th className="pb-3 pr-4 text-xs font-medium text-muted-foreground">
+													Description
+												</th>
+												<th className="pb-3 pr-4 text-xs font-medium text-muted-foreground">
+													Category
+												</th>
+												<th className="pb-3 text-right text-xs font-medium text-muted-foreground">
+													Amount
+												</th>
+											</tr>
+										</thead>
+										<tbody>
+											{transactions.transactions.map((tx) => (
+												<tr
+													key={tx.id}
+													className="border-b border-border/50 transition-colors hover:bg-muted/30"
+												>
+													<td className="py-3 pr-4 text-muted-foreground tabular-nums">
+														{new Date(tx.date).toLocaleDateString([], {
+															month: "short",
+															day: "numeric",
+														})}
+													</td>
+													<td className="py-3 pr-4 font-medium">
+														<div>
+															{tx.description}
+															{tx.account_name && (
+																<span className="ml-1.5 text-xs text-muted-foreground">
+																	{tx.account_name}
+																</span>
+															)}
+														</div>
+													</td>
+													<td className="py-3 pr-4">
+														<Badge variant="secondary">
+															{tx.category}
+														</Badge>
+													</td>
+													<td
+														className={`py-3 text-right font-medium tabular-nums ${
+															tx.amount < 0
+																? "text-red-500"
+																: "text-emerald-500"
+														}`}
+													>
+														{tx.amount < 0 ? "-" : "+"}
+														{formatCurrency(Math.abs(tx.amount))}
+													</td>
+												</tr>
+											))}
+										</tbody>
+									</table>
+								</div>
+								<p className="mt-3 text-xs text-muted-foreground">
+									Showing {transactions.transactions.length} of {transactions.count} transactions
+								</p>
+							</CardContent>
+						</Card>
+					) : (
+						<Card>
+							<CardContent className="flex items-center justify-center py-12">
+								<p className="text-sm text-muted-foreground">
+									No transactions yet.
+								</p>
+							</CardContent>
+						</Card>
+					)}
+				</div>
 
-				{/* Subscriptions */}
-				{subscriptionsQuery.isLoading ? (
-					<SkeletonBlock />
-				) : (
-					<SubscriptionList
-						subscriptions={subscriptionsQuery.data ?? []}
-					/>
-				)}
+				{/* Subscriptions - takes 1 col */}
+				<div>
+					{subscriptionsQuery.isLoading ? (
+						<TableSkeleton rows={4} />
+					) : subscriptionsQuery.isError ? (
+						<QueryError message="Failed to load subscriptions." onRetry={() => subscriptionsQuery.refetch()} />
+					) : (
+						<Card>
+							<CardHeader>
+								<CardTitle className="flex items-center gap-2">
+									<RefreshCw className="h-4 w-4 text-muted-foreground" />
+									Subscriptions
+								</CardTitle>
+							</CardHeader>
+							<CardContent>
+								{subscriptions && subscriptions.recurring.length > 0 ? (
+									<div className="space-y-0">
+										{subscriptions.recurring.map((sub, index) => (
+											<div key={`${sub.description}-${sub.amount}`}>
+												{index > 0 && <Separator className="my-0" />}
+												<div className="py-3">
+													<div className="flex items-center justify-between">
+														<p className="text-sm font-medium">
+															{sub.description}
+														</p>
+														<p className="text-sm font-semibold tabular-nums">
+															{formatCurrency(sub.amount)}
+														</p>
+													</div>
+													<div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+														<span>{sub.frequency}</span>
+														<span>·</span>
+														<span>
+															Next: {new Date(sub.next_date).toLocaleDateString([], {
+																month: "short",
+																day: "numeric",
+															})}
+														</span>
+													</div>
+												</div>
+											</div>
+										))}
+										<Separator />
+										<div className="flex items-center justify-between pt-3">
+											<p className="text-sm font-medium text-muted-foreground">
+												Monthly Total
+											</p>
+											<p className="text-sm font-semibold tabular-nums">
+												{formatCurrency(subscriptions.total_monthly)}
+											</p>
+										</div>
+									</div>
+								) : (
+									<p className="py-6 text-center text-sm text-muted-foreground">
+										No subscriptions detected.
+									</p>
+								)}
+							</CardContent>
+						</Card>
+					)}
+				</div>
 			</div>
 		</div>
 	);

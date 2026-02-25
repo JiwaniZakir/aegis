@@ -42,7 +42,7 @@ export default function RootLayout() {
           <Stack.Screen
             name="index"
             options={{
-              title: "ClawdBot",
+              title: "Aegis",
               headerLargeTitle: true,
             }}
           />
@@ -51,6 +51,12 @@ export default function RootLayout() {
             options={{
               title: "Voice Assistant",
               presentation: "modal",
+            }}
+          />
+          <Stack.Screen
+            name="health"
+            options={{
+              title: "Health",
             }}
           />
         </Stack>

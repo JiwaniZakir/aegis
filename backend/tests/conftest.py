@@ -1,4 +1,4 @@
-"""Shared test fixtures for ClawdBot backend."""
+"""Shared test fixtures for Aegis backend."""
 
 from __future__ import annotations
 

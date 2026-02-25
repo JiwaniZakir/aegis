@@ -59,7 +59,7 @@ export const useAuthStore = create<AuthState>()(
 			},
 		}),
 		{
-			name: "clawdbot-auth",
+			name: "aegis-auth",
 			partialize: (state) => ({
 				accessToken: state.accessToken,
 				refreshToken: state.refreshToken,

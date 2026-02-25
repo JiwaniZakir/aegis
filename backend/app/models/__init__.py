@@ -14,6 +14,7 @@ from app.models.meeting import Meeting
 from app.models.productivity import ProductivityLog
 from app.models.transaction import Transaction
 from app.models.user import User
+from app.models.whatsapp import WhatsAppConversation, WhatsAppMessage
 
 __all__ = [
     "Account",
@@ -31,4 +32,6 @@ __all__ = [
     "ProductivityLog",
     "Transaction",
     "User",
+    "WhatsAppConversation",
+    "WhatsAppMessage",
 ]

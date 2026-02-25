@@ -1,4 +1,4 @@
-# ClawdBot — Phased Build Prompt for Claude Code
+# Aegis — Phased Build Prompt for Claude Code
 
 > **Instructions**: Run each phase sequentially. Complete and verify each phase before moving on. Each phase lists exact acceptance criteria — all must pass before proceeding. Read CLAUDE.md first for full architecture, technology decisions, and security constraints.
 

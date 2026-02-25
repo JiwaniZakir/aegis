@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# ClawdBot — Backup Script
+# Aegis — Backup Script
 # =============================================================================
 # Dumps PostgreSQL, encrypts with age, stores in MinIO.
 #
@@ -30,7 +30,7 @@ fi
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_DIR="$PROJECT_DIR/backups"
-DUMP_FILE="$BACKUP_DIR/clawdbot_${TIMESTAMP}.sql.gz"
+DUMP_FILE="$BACKUP_DIR/aegis_${TIMESTAMP}.sql.gz"
 ENCRYPTED_FILE="${DUMP_FILE}.age"
 
 mkdir -p "$BACKUP_DIR"
@@ -38,7 +38,7 @@ mkdir -p "$BACKUP_DIR"
 # --- Step 1: Dump PostgreSQL ---
 log_info "Dumping PostgreSQL database..."
 docker compose -f "$PROJECT_DIR/docker-compose.yml" exec -T postgres \
-    pg_dump -U "${POSTGRES_USER:-clawdbot}" "${POSTGRES_DB:-clawdbot}" \
+    pg_dump -U "${POSTGRES_USER:-aegis}" "${POSTGRES_DB:-aegis}" \
     | gzip > "$DUMP_FILE"
 
 DUMP_SIZE=$(du -h "$DUMP_FILE" | cut -f1)
@@ -64,11 +64,11 @@ fi
 # --- Step 3: Upload to MinIO ---
 if command -v mc &>/dev/null; then
     log_info "Uploading to MinIO..."
-    mc alias set clawdbot "${MINIO_URL:-http://localhost:9000}" \
-        "${MINIO_ROOT_USER:-clawdbot}" "${MINIO_ROOT_PASSWORD}" 2>/dev/null
+    mc alias set aegis "${MINIO_URL:-http://localhost:9000}" \
+        "${MINIO_ROOT_USER:-aegis}" "${MINIO_ROOT_PASSWORD}" 2>/dev/null
 
-    mc mb --ignore-existing clawdbot/backups 2>/dev/null
-    mc cp "$ENCRYPTED_FILE" "clawdbot/backups/$(basename "$ENCRYPTED_FILE")"
+    mc mb --ignore-existing aegis/backups 2>/dev/null
+    mc cp "$ENCRYPTED_FILE" "aegis/backups/$(basename "$ENCRYPTED_FILE")"
     log_info "Uploaded to MinIO: backups/$(basename "$ENCRYPTED_FILE")"
 else
     log_warn "mc (MinIO client) not installed — backup stored locally only"
@@ -76,7 +76,7 @@ fi
 
 # --- Step 4: Clean up old local backups (keep last 7) ---
 log_info "Cleaning old local backups..."
-ls -t "$BACKUP_DIR"/clawdbot_*.age "$BACKUP_DIR"/clawdbot_*.sql.gz 2>/dev/null \
+ls -t "$BACKUP_DIR"/aegis_*.age "$BACKUP_DIR"/aegis_*.sql.gz 2>/dev/null \
     | tail -n +8 | xargs rm -f 2>/dev/null || true
 
 log_info "Backup complete."

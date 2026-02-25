@@ -1,6 +1,7 @@
-import { useEffect, useRef, useCallback, useState } from "react";
-import { View, Text, Pressable, StyleSheet, Animated, Platform } from "react-native";
+import { useEffect, useRef, useCallback } from "react";
+import { View, Text, Pressable, StyleSheet, Animated } from "react-native";
 import { Audio } from "expo-av";
+import * as Speech from "expo-speech";
 import { useVoiceStore } from "../lib/store";
 import { apiClient } from "../lib/api";
 
@@ -22,6 +23,9 @@ export function VoiceInterface() {
   const setPlaying = useVoiceStore((s) => s.setPlaying);
   const setTranscript = useVoiceStore((s) => s.setTranscript);
   const setLastResponse = useVoiceStore((s) => s.setLastResponse);
+
+  const error = useVoiceStore((s) => s.error);
+  const setError = useVoiceStore((s) => s.setError);
 
   const recordingRef = useRef<Audio.Recording | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
@@ -132,7 +136,7 @@ export function VoiceInterface() {
         return;
       }
 
-      // Send audio to backend for STT
+      // Send audio to backend for STT (Whisper API)
       const transcriptResult = await apiClient.transcribeAudio(uri);
       setTranscript(transcriptResult.text);
       setTranscribing(false);
@@ -141,15 +145,20 @@ export function VoiceInterface() {
       const responseResult = await apiClient.processVoiceQuery(transcriptResult.text);
       setLastResponse(responseResult.text);
 
-      // Play TTS audio response if available
+      // Play TTS: prefer backend audio_url, fall back to expo-speech on-device TTS
       if (responseResult.audio_url) {
         await playResponse(responseResult.audio_url);
+      } else if (responseResult.text) {
+        await speakResponse(responseResult.text);
       }
     } catch (err) {
       console.error("Failed to process recording:", err);
       setTranscribing(false);
+      setError(
+        err instanceof Error ? err.message : "Failed to process voice input. Please try again."
+      );
     }
-  }, [setRecording, setTranscribing, setTranscript, setLastResponse]);
+  }, [setRecording, setTranscribing, setTranscript, setLastResponse, setError]);
 
   const playResponse = useCallback(
     async (audioUrl: string) => {
@@ -172,6 +181,37 @@ export function VoiceInterface() {
         });
       } catch (err) {
         console.error("Failed to play response audio:", err);
+        setPlaying(false);
+      }
+    },
+    [setPlaying]
+  );
+
+  const speakResponse = useCallback(
+    async (text: string) => {
+      try {
+        setPlaying(true);
+
+        // Stop any in-progress speech before starting new utterance
+        await Speech.stop();
+
+        Speech.speak(text, {
+          language: "en-US",
+          pitch: 1.0,
+          rate: 0.95,
+          onDone: () => {
+            setPlaying(false);
+          },
+          onError: () => {
+            console.error("expo-speech TTS error");
+            setPlaying(false);
+          },
+          onStopped: () => {
+            setPlaying(false);
+          },
+        });
+      } catch (err) {
+        console.error("Failed to speak response:", err);
         setPlaying(false);
       }
     },
@@ -242,6 +282,28 @@ export function VoiceInterface() {
       <Text style={[styles.statusLabel, isActive && styles.statusLabelActive]}>
         {statusLabel}
       </Text>
+
+      {/* Error Display */}
+      {error && (
+        <Pressable onPress={() => setError(null)} style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.errorDismiss}>Tap to dismiss</Text>
+        </Pressable>
+      )}
+
+      {/* Stop Speaking Button */}
+      {isPlaying && (
+        <Pressable
+          style={styles.stopSpeakingButton}
+          onPress={() => {
+            Speech.stop();
+            soundRef.current?.stopAsync();
+            setPlaying(false);
+          }}
+        >
+          <Text style={styles.stopSpeakingText}>Stop Speaking</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -331,5 +393,43 @@ const styles = StyleSheet.create({
   },
   statusLabelActive: {
     color: TEXT_PRIMARY,
+  },
+
+  // Error
+  errorContainer: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "#2D1418",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#EF444440",
+    alignItems: "center",
+    maxWidth: 280,
+  },
+  errorText: {
+    fontSize: 13,
+    color: "#EF4444",
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  errorDismiss: {
+    fontSize: 11,
+    color: TEXT_SECONDARY,
+    marginTop: 4,
+  },
+
+  // Stop Speaking
+  stopSpeakingButton: {
+    marginTop: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    backgroundColor: "#222230",
+    borderRadius: 20,
+  },
+  stopSpeakingText: {
+    fontSize: 13,
+    color: TEXT_SECONDARY,
+    fontWeight: "600",
   },
 });

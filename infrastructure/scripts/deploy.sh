@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# ClawdBot — Deployment Script
+# Aegis — Deployment Script
 # =============================================================================
 # Decrypts SOPS secrets, validates .env, builds and starts all services,
 # runs health checks.

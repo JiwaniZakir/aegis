@@ -1,5 +1,5 @@
 # =============================================================================
-# ClawdBot API — Production Dockerfile
+# Aegis API — Production Dockerfile
 # =============================================================================
 # Multi-stage build: install deps, then copy to slim runtime.
 # Non-root user, read-only filesystem.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# ClawdBot — Secret Rotation Script
+# Aegis — Secret Rotation Script
 # =============================================================================
 # Rotates internal secrets (DB password, Redis password, JWT secret, etc.)
 # Re-encrypts with SOPS and restarts affected services.
@@ -24,7 +24,7 @@ log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 
 generate_secret() { openssl rand -hex 32; }
 
-log_info "=== ClawdBot Secret Rotation ==="
+log_info "=== Aegis Secret Rotation ==="
 echo ""
 
 # --- Backup current .env ---
@@ -64,8 +64,8 @@ log_info "Updated .env with new secrets"
 # --- Update PostgreSQL password ---
 log_info "Updating PostgreSQL password..."
 docker compose -f "$PROJECT_DIR/docker-compose.yml" exec -T postgres \
-    psql -U "${POSTGRES_USER:-clawdbot}" -c \
-    "ALTER USER ${POSTGRES_USER:-clawdbot} PASSWORD '${NEW_POSTGRES_PW}';" 2>/dev/null || \
+    psql -U "${POSTGRES_USER:-aegis}" -c \
+    "ALTER USER ${POSTGRES_USER:-aegis} PASSWORD '${NEW_POSTGRES_PW}';" 2>/dev/null || \
     log_warn "Could not update PG password live — will take effect on next restart"
 
 # --- Restart services ---

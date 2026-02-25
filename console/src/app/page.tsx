@@ -7,114 +7,34 @@ import {
 	Footprints,
 	Flame,
 	FileText,
-	ArrowUpRight,
-	ArrowDownRight,
 	Clock,
 } from "lucide-react";
 import { api } from "@/lib/api";
-import type {
-	DailyBriefing,
-	CalendarEvent,
-	FinanceSnapshot,
-	HealthMetrics,
-} from "@/lib/api";
+import type { CalendarEvent } from "@/lib/api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MetricCard } from "@/components/metric-card";
+import { PageHeader } from "@/components/page-header";
+import { MetricCardSkeleton } from "@/components/loading-skeleton";
+import { QueryError } from "@/components/query-error";
+import { Skeleton } from "@/components/ui/skeleton";
+import { RadialBarChart, RadialBar, PolarAngleAxis } from "recharts";
+import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 
-function StatCard({
-	label,
-	value,
-	icon: Icon,
-	trend,
-}: {
-	label: string;
-	value: string;
-	icon: React.ComponentType<{ className?: string }>;
-	trend?: { value: string; positive: boolean };
-}) {
-	return (
-		<div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-			<div className="flex items-center justify-between">
-				<p className="text-sm text-neutral-400">{label}</p>
-				<Icon className="h-4 w-4 text-neutral-500" />
-			</div>
-			<p className="mt-2 text-2xl font-semibold text-neutral-50">{value}</p>
-			{trend && (
-				<div className="mt-1 flex items-center gap-1 text-xs">
-					{trend.positive ? (
-						<ArrowUpRight className="h-3 w-3 text-emerald-500" />
-					) : (
-						<ArrowDownRight className="h-3 w-3 text-red-500" />
-					)}
-					<span
-						className={
-							trend.positive ? "text-emerald-500" : "text-red-500"
-						}
-					>
-						{trend.value}
-					</span>
-				</div>
-			)}
-		</div>
-	);
-}
-
-function CalendarEventRow({ event }: { event: CalendarEvent }) {
+function EventRow({ event }: { event: CalendarEvent }) {
 	const time = new Date(event.start).toLocaleTimeString([], {
 		hour: "2-digit",
 		minute: "2-digit",
 	});
 	return (
-		<div className="flex items-center gap-3 rounded-md border border-neutral-800 px-3 py-2">
-			<Clock className="h-4 w-4 shrink-0 text-neutral-500" />
+		<div className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted">
+			<Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
 			<div className="min-w-0 flex-1">
-				<p className="truncate text-sm font-medium text-neutral-200">
-					{event.title}
-				</p>
+				<p className="truncate text-sm font-medium">{event.title}</p>
 				{event.location && (
-					<p className="truncate text-xs text-neutral-500">
-						{event.location}
-					</p>
+					<p className="truncate text-xs text-muted-foreground">{event.location}</p>
 				)}
 			</div>
-			<span className="shrink-0 text-xs text-neutral-400">{time}</span>
-		</div>
-	);
-}
-
-function BriefingSection({ briefing }: { briefing: DailyBriefing }) {
-	return (
-		<div className="rounded-lg border border-neutral-800 bg-neutral-900 p-5">
-			<h2 className="mb-3 text-lg font-semibold text-neutral-100">
-				Morning Briefing
-			</h2>
-			<p className="text-sm leading-relaxed text-neutral-300">
-				{briefing.summary}
-			</p>
-			{briefing.action_items.length > 0 && (
-				<div className="mt-4">
-					<h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-						Action Items
-					</h3>
-					<ul className="space-y-1">
-						{briefing.action_items.map((item) => (
-							<li
-								key={item}
-								className="text-sm text-neutral-300 before:mr-2 before:text-neutral-600 before:content-['\u2022']"
-							>
-								{item}
-							</li>
-						))}
-					</ul>
-				</div>
-			)}
-		</div>
-	);
-}
-
-function SkeletonCard() {
-	return (
-		<div className="animate-pulse rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-			<div className="h-4 w-24 rounded bg-neutral-800" />
-			<div className="mt-3 h-7 w-32 rounded bg-neutral-800" />
+			<span className="shrink-0 text-xs text-muted-foreground">{time}</span>
 		</div>
 	);
 }
@@ -131,7 +51,7 @@ export default function DashboardPage() {
 	const calendarEvents = briefing?.calendar_events ?? [];
 	const contentStatus = briefing?.content_status;
 
-	const formatCurrency = (n: number) =>
+	const fmt = (n: number) =>
 		new Intl.NumberFormat("en-US", {
 			style: "currency",
 			currency: "USD",
@@ -140,113 +60,187 @@ export default function DashboardPage() {
 
 	return (
 		<div className="mx-auto max-w-6xl space-y-6">
-			<h1 className="text-2xl font-bold text-neutral-50">Dashboard</h1>
+			<PageHeader title="Dashboard" description="Your morning overview" />
 
-			{/* Stat cards */}
 			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 				{briefingQuery.isLoading ? (
 					<>
-						<SkeletonCard />
-						<SkeletonCard />
-						<SkeletonCard />
-						<SkeletonCard />
+						<MetricCardSkeleton />
+						<MetricCardSkeleton />
+						<MetricCardSkeleton />
+						<MetricCardSkeleton />
 					</>
+				) : briefingQuery.isError ? (
+					<div className="sm:col-span-2 lg:col-span-4">
+						<QueryError message="Failed to load briefing data." onRetry={() => briefingQuery.refetch()} />
+					</div>
 				) : (
 					<>
-						<StatCard
+						<MetricCard
 							label="Total Balance"
-							value={
-								financeSnap
-									? formatCurrency(financeSnap.total_balance)
-									: "--"
-							}
+							value={financeSnap ? fmt(financeSnap.total_balance) : "--"}
 							icon={DollarSign}
 							trend={
 								financeSnap
-									? {
-											value: formatCurrency(
-												financeSnap.monthly_spending,
-											),
-											positive:
-												financeSnap.monthly_spending < 3000,
-										}
+									? { value: fmt(financeSnap.monthly_spending), positive: financeSnap.monthly_spending < 3000 }
 									: undefined
 							}
 						/>
-						<StatCard
+						<MetricCard
 							label="Steps Today"
-							value={
-								healthSummary
-									? healthSummary.steps.toLocaleString()
-									: "--"
-							}
+							value={healthSummary ? healthSummary.steps.toLocaleString() : "--"}
 							icon={Footprints}
 						/>
-						<StatCard
+						<MetricCard
 							label="Calories"
-							value={
-								healthSummary
-									? `${healthSummary.calories_consumed.toLocaleString()} kcal`
-									: "--"
-							}
+							value={healthSummary ? `${healthSummary.calories_consumed.toLocaleString()} kcal` : "--"}
 							icon={Flame}
 						/>
-						<StatCard
+						<MetricCard
 							label="Posts Today"
-							value={
-								contentStatus
-									? `${contentStatus.posts_published_today} / ${contentStatus.posts_scheduled}`
-									: "--"
-							}
+							value={contentStatus ? `${contentStatus.posts_published_today} / ${contentStatus.posts_scheduled}` : "--"}
 							icon={FileText}
 						/>
 					</>
 				)}
 			</div>
 
-			<div className="grid gap-6 lg:grid-cols-2">
-				{/* Briefing */}
-				{briefing ? (
-					<BriefingSection briefing={briefing} />
-				) : briefingQuery.isLoading ? (
-					<div className="animate-pulse rounded-lg border border-neutral-800 bg-neutral-900 p-5">
-						<div className="h-5 w-40 rounded bg-neutral-800" />
-						<div className="mt-4 space-y-2">
-							<div className="h-4 w-full rounded bg-neutral-800" />
-							<div className="h-4 w-3/4 rounded bg-neutral-800" />
-							<div className="h-4 w-5/6 rounded bg-neutral-800" />
-						</div>
-					</div>
-				) : (
-					<div className="flex items-center justify-center rounded-lg border border-neutral-800 bg-neutral-900 p-8">
-						<p className="text-sm text-neutral-500">
-							Briefing not yet generated for today.
-						</p>
-					</div>
-				)}
+			<div className="grid gap-6 lg:grid-cols-3">
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-base">Morning Briefing</CardTitle>
+					</CardHeader>
+					<CardContent>
+						{briefing ? (
+							<div className="space-y-4">
+								<p className="text-sm leading-relaxed text-muted-foreground">
+									{briefing.summary}
+								</p>
+								{briefing.action_items.length > 0 && (
+									<div>
+										<p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+											Action Items
+										</p>
+										<ul className="space-y-1.5">
+											{briefing.action_items.map((item) => (
+												<li key={item} className="flex items-start gap-2 text-sm">
+													<span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground" />
+													{item}
+												</li>
+											))}
+										</ul>
+									</div>
+								)}
+							</div>
+						) : briefingQuery.isLoading ? (
+							<div className="space-y-2">
+								<Skeleton className="h-4 w-full" />
+								<Skeleton className="h-4 w-3/4" />
+								<Skeleton className="h-4 w-5/6" />
+							</div>
+						) : briefingQuery.isError ? (
+							<QueryError message="Failed to load morning briefing." onRetry={() => briefingQuery.refetch()} />
+						) : (
+							<p className="py-4 text-center text-sm text-muted-foreground">
+								Briefing not yet generated for today.
+							</p>
+						)}
+					</CardContent>
+				</Card>
 
-				{/* Calendar */}
-				<div className="rounded-lg border border-neutral-800 bg-neutral-900 p-5">
-					<div className="mb-3 flex items-center gap-2">
-						<CalendarDays className="h-4 w-4 text-neutral-400" />
-						<h2 className="text-lg font-semibold text-neutral-100">
-							Today&apos;s Events
-						</h2>
-					</div>
-					{calendarEvents.length > 0 ? (
-						<div className="space-y-2">
-							{calendarEvents.map((event) => (
-								<CalendarEventRow key={event.id} event={event} />
-							))}
+				<Card>
+					<CardHeader>
+						<div className="flex items-center gap-2">
+							<CalendarDays className="h-4 w-4 text-muted-foreground" />
+							<CardTitle className="text-base">Today&apos;s Events</CardTitle>
 						</div>
-					) : (
-						<p className="py-4 text-center text-sm text-neutral-500">
-							{briefingQuery.isLoading
-								? "Loading events..."
-								: "No events today."}
-						</p>
-					)}
-				</div>
+					</CardHeader>
+					<CardContent>
+						{calendarEvents.length > 0 ? (
+							<div className="space-y-1">
+								{calendarEvents.map((event) => (
+									<EventRow key={event.id} event={event} />
+								))}
+							</div>
+						) : (
+							<p className="py-4 text-center text-sm text-muted-foreground">
+								{briefingQuery.isLoading ? "Loading events..." : "No events today."}
+							</p>
+						)}
+					</CardContent>
+				</Card>
+
+				{/* Health Goals */}
+				<Card>
+					<CardHeader>
+						<div className="flex items-center gap-2">
+							<Footprints className="h-4 w-4 text-muted-foreground" />
+							<CardTitle className="text-base">Health Goals</CardTitle>
+						</div>
+					</CardHeader>
+					<CardContent>
+						{healthSummary ? (() => {
+							const stepsGoal = 10000;
+							const caloriesLimit = 1900;
+							const stepsPct = Math.min(Math.round((healthSummary.steps / stepsGoal) * 100), 100);
+							const caloriesPct = Math.min(Math.round((healthSummary.calories_consumed / caloriesLimit) * 100), 100);
+							const radialData = [
+								{ name: "Calories", value: caloriesPct, fill: "var(--color-calories)" },
+								{ name: "Steps", value: stepsPct, fill: "var(--color-steps)" },
+							];
+							const healthGoalsConfig: ChartConfig = {
+								steps: { label: "Steps", color: "hsl(142, 71%, 45%)" },
+								calories: { label: "Calories", color: "hsl(24, 95%, 53%)" },
+							};
+							return (
+								<div className="space-y-3">
+									<ChartContainer config={healthGoalsConfig} className="mx-auto aspect-square max-h-[180px]">
+										<RadialBarChart
+											cx="50%"
+											cy="50%"
+											innerRadius="30%"
+											outerRadius="90%"
+											data={radialData}
+											startAngle={90}
+											endAngle={-270}
+										>
+											<PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
+											<RadialBar
+												background
+												dataKey="value"
+												cornerRadius={6}
+											/>
+										</RadialBarChart>
+									</ChartContainer>
+									<div className="space-y-1.5 text-sm">
+										<div className="flex items-center justify-between">
+											<div className="flex items-center gap-2">
+												<div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "hsl(142, 71%, 45%)" }} />
+												<span className="text-muted-foreground">Steps</span>
+											</div>
+											<span className="font-medium tabular-nums">
+												{healthSummary.steps.toLocaleString()} / {stepsGoal.toLocaleString()}
+											</span>
+										</div>
+										<div className="flex items-center justify-between">
+											<div className="flex items-center gap-2">
+												<div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "hsl(24, 95%, 53%)" }} />
+												<span className="text-muted-foreground">Calories</span>
+											</div>
+											<span className="font-medium tabular-nums">
+												{healthSummary.calories_consumed.toLocaleString()} / {caloriesLimit.toLocaleString()}
+											</span>
+										</div>
+									</div>
+								</div>
+							);
+						})() : (
+							<p className="py-4 text-center text-sm text-muted-foreground">
+								{briefingQuery.isLoading ? "Loading..." : "No health data yet."}
+							</p>
+						)}
+					</CardContent>
+				</Card>
 			</div>
 		</div>
 	);

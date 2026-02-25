@@ -1,7 +1,7 @@
 import { useAuthStore } from "./store";
 
 /**
- * ClawdBot API client for mobile.
+ * Aegis API client for mobile.
  *
  * All requests go through the Cloudflare Tunnel to the backend FastAPI server.
  * JWT tokens are managed via the auth store and attached to every request.
@@ -9,7 +9,7 @@ import { useAuthStore } from "./store";
 
 // In development, this should point to your local backend.
 // In production, this is the Cloudflare Tunnel URL.
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://api.clawdbot.local";
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://api.aegis.local";
 
 interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -65,6 +65,19 @@ interface HealthMetrics {
   sleep_hours: number | null;
   heart_rate_avg: number | null;
   date: string;
+}
+
+interface AppleHealthPayload {
+  steps: number | null;
+  heart_rate_samples: Array<{ value: number; timestamp: string }>;
+  sleep_hours: number | null;
+  active_energy_kcal: number | null;
+  recorded_at: string;
+}
+
+interface HealthSyncResult {
+  status: string;
+  synced_at: string;
 }
 
 class ApiError extends Error {
@@ -184,6 +197,13 @@ export const apiClient = {
     return request<HealthMetrics>("/api/v1/health/today");
   },
 
+  async submitAppleHealthData(data: AppleHealthPayload): Promise<HealthSyncResult> {
+    return request<HealthSyncResult>("/api/v1/health-data/apple", {
+      method: "POST",
+      body: data as unknown as Record<string, unknown>,
+    });
+  },
+
   // --- Voice ---
   async transcribeAudio(audioUri: string): Promise<TranscriptResult> {
     const formData = new FormData();
@@ -238,4 +258,6 @@ export type {
   FinancialSnapshot,
   CalendarEvent,
   HealthMetrics,
+  AppleHealthPayload,
+  HealthSyncResult,
 };

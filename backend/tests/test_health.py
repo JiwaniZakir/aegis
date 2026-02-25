@@ -21,7 +21,7 @@ async def test_health_endpoint(client: AsyncClient):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ok"
-    assert data["service"] == "clawdbot-api"
+    assert data["service"] == "aegis-api"
 
 
 @pytest.mark.asyncio

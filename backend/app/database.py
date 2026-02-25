@@ -1,4 +1,4 @@
-"""ClawdBot — Async database engine and session management."""
+"""Aegis — Async database engine and session management."""
 
 from __future__ import annotations
 

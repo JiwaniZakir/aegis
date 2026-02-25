@@ -17,6 +17,7 @@ from app.security.auth import (
     create_access_token,
     create_refresh_token,
     decode_token,
+    get_current_user,
     verify_password,
     verify_totp,
 )
@@ -68,8 +69,21 @@ async def login(
     Rate-limited to 5 attempts per minute per client IP to mitigate
     brute-force attacks.
     """
+    from app.security.monitoring import (
+        clear_failed_logins,
+        is_locked_out,
+        record_failed_login,
+    )
+
     # Fix 1: strict rate limiting on login (5 attempts / 60 seconds)
     await check_rate_limit(request, limit=5, window_seconds=60)
+
+    # Check account lockout (10 failed attempts = 15 min lockout)
+    if await is_locked_out(body.email):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Account temporarily locked due to too many failed attempts",
+        )
 
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
@@ -84,6 +98,7 @@ async def login(
     )
 
     if user is None or not password_valid:
+        await record_failed_login(body.email)
         await audit_log(
             db,
             action="login_failed",
@@ -112,6 +127,9 @@ async def login(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid TOTP code",
             )
+
+    # Clear lockout counter on successful login
+    await clear_failed_logins(body.email)
 
     user_id = str(user.id)
     access_token = create_access_token(user_id)
@@ -201,3 +219,13 @@ async def logout(
         resource_type="auth",
         user_id=access_payload.get("sub"),
     )
+
+
+@router.get("/me")
+async def get_me(user: User = Depends(get_current_user)) -> dict:
+    """Return the current authenticated user's profile."""
+    return {
+        "id": str(user.id),
+        "email": user.email,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+    }

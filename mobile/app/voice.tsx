@@ -24,7 +24,7 @@ export default function VoiceScreen() {
           </View>
         ) : (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Ask ClawdBot anything</Text>
+            <Text style={styles.emptyTitle}>Ask Aegis anything</Text>
             <Text style={styles.emptySubtitle}>
               Tap the microphone to start speaking. Ask about your finances, schedule, health
               metrics, or anything else.
@@ -40,7 +40,7 @@ export default function VoiceScreen() {
 
         {response && (
           <View style={[styles.messageBubble, styles.responseBubble]}>
-            <Text style={[styles.messageLabel, { color: ACCENT }]}>ClawdBot</Text>
+            <Text style={[styles.messageLabel, { color: ACCENT }]}>Aegis</Text>
             <Text style={styles.messageText}>{response}</Text>
           </View>
         )}

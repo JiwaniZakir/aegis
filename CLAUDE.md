@@ -2,11 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-# ClawdBot Personal Intelligence Platform
+# Aegis Personal Intelligence Platform
 
 ## Mission
 
-ClawdBot is a self-hosted personal intelligence platform that aggregates data from financial accounts, email, calendars, social media, device usage, health metrics, and the web — then surfaces actionable insights through a secure web console and a voice-based mobile interface. It also runs an autonomous content engine that publishes daily thought-leadership posts to LinkedIn and X.
+Aegis is a self-hosted personal intelligence platform that aggregates data from financial accounts, email, calendars, social media, device usage, health metrics, and the web — then surfaces actionable insights through a secure web console and a voice-based mobile interface. It also runs an autonomous content engine that publishes daily thought-leadership posts to LinkedIn and X.
 
 Everything runs on a single Hetzner VPS behind SSH tunneling with zero public attack surface. Security is the #1 architectural constraint — every design decision must minimize data leakage risk.
 
@@ -113,7 +113,7 @@ Everything runs on a single Hetzner VPS behind SSH tunneling with zero public at
 ## Directory Structure
 
 ```
-clawdbot/
+aegis/
 ├── CLAUDE.md
 ├── docker-compose.yml
 ├── docker-compose.prod.yml
@@ -424,9 +424,9 @@ JWT_SECRET=                         # Generate with: openssl rand -hex 32
 ENCRYPTION_MASTER_KEY=              # Generate with: openssl rand -hex 32
 
 # === Database ===
-POSTGRES_USER=clawdbot
+POSTGRES_USER=aegis
 POSTGRES_PASSWORD=                  # Generate with: openssl rand -hex 24
-POSTGRES_DB=clawdbot
+POSTGRES_DB=aegis
 DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
 REDIS_URL=redis://redis:6379/0
 

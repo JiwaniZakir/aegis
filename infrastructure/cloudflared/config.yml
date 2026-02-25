@@ -5,10 +5,10 @@
 # All traffic enters via Cloudflare's edge and exits here to Traefik.
 # =============================================================================
 
-tunnel: clawdbot
+tunnel: aegis
 credentials-file: /etc/cloudflared/creds.json
 
 ingress:
-  - hostname: "*.clawdbot.internal"
+  - hostname: "*.aegis.internal"
     service: http://traefik:80
   - service: http_status:404

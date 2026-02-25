@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Providers from "@/components/Providers";
-import Sidebar from "@/components/Sidebar";
+import AppShell from "@/components/app-shell";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 export const metadata: Metadata = {
-	title: "ClawdBot Console",
+	title: "Aegis Console",
 	description: "Personal intelligence platform dashboard",
 };
 
@@ -14,15 +15,12 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en" className="dark">
-			<body className="bg-neutral-950 text-neutral-50 antialiased">
+		<html lang="en" className="dark" suppressHydrationWarning>
+			<body className="antialiased">
 				<Providers>
-					<div className="flex h-screen overflow-hidden">
-						<Sidebar />
-						<main className="flex-1 overflow-y-auto p-6">
-							{children}
-						</main>
-					</div>
+					<AppShell>
+						<ErrorBoundary>{children}</ErrorBoundary>
+					</AppShell>
 				</Providers>
 			</body>
 		</html>

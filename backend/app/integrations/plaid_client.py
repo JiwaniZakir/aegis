@@ -60,7 +60,7 @@ class PlaidClient(BaseIntegration):
         if not PLAID_AVAILABLE:
             msg = (
                 "plaid-python is not installed. "
-                "Install with: uv pip install 'clawdbot[integrations]'"
+                "Install with: uv pip install 'aegis[integrations]'"
             )
             raise PlaidUnavailableError(msg)
 
@@ -98,7 +98,7 @@ class PlaidClient(BaseIntegration):
         try:
             request = LinkTokenCreateRequest(
                 user=LinkTokenCreateRequestUser(client_user_id=self.user_id),
-                client_name="ClawdBot",
+                client_name="Aegis",
                 products=[Products("transactions")],
                 country_codes=[CountryCode("US")],
                 language="en",
