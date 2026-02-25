@@ -1,160 +1,134 @@
+<div align="center">
+
 # Aegis
 
-[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docker.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Redis](https://img.shields.io/badge/Redis-7.4+-DC382D?logo=redis&logoColor=white)](https://redis.io/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+**Self-hosted personal intelligence platform.**
 
-Self-hosted personal intelligence platform aggregating 15+ data sources with RAG-powered insights and autonomous content generation.
+Aggregate 15+ data sources. Surface actionable insights with RAG. Publish autonomously.
+
+[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com/)
+[![License](https://img.shields.io/badge/License-MIT-58A6FF?style=for-the-badge)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/JiwaniZakir/aegis?style=for-the-badge&color=58A6FF)](https://github.com/JiwaniZakir/aegis/stargazers)
+[![Forks](https://img.shields.io/github/forks/JiwaniZakir/aegis?style=for-the-badge&color=58A6FF)](https://github.com/JiwaniZakir/aegis/network/members)
+
+</div>
 
 ---
 
-## Architecture
+## Overview
+
+Aegis connects to your financial accounts, email, calendars, social media, health devices, and more — then uses a RAG pipeline powered by Claude to deliver intelligent briefings, trend analysis, and autonomous content publishing. Everything runs on a single VPS behind Cloudflare Tunnel with zero public ports and AES-256-GCM encryption at rest.
+
+---
+
+## :sparkles: Features
+
+**Personal Intelligence**
+- :bank: **Financial analysis** — Spending trends, recurring charges, and portfolio tracking via Plaid + Schwab
+- :envelope: **Email intelligence** — Automated categorization, priority scoring, and relationship extraction
+- :mortar_board: **Academic tracking** — Assignment deadlines and grade monitoring across Canvas, Blackboard, and Pearson
+- :people_holding_hands: **Contact graph** — Relationship mapping across email, social, calendar, and messaging
+- :heart: **Health optimization** — Activity trends and sleep analysis from Apple Health + Garmin
+
+**Content Engine**
+- :robot: **RAG pipeline** — Qdrant vector store with sentence-transformer embeddings over all ingested data
+- :newspaper: **Autonomous publishing** — Daily thought-leadership posts to LinkedIn and X from your knowledge base
+- :brain: **Claude-powered analysis** — Anthropic Claude API for content generation and insight synthesis
+
+**Security-First Architecture**
+- :lock: **Zero attack surface** — No public ports; all access through Cloudflare Tunnel
+- :shield: **AES-256-GCM encryption** — All sensitive data encrypted at rest with authenticated encryption
+- :key: **SOPS + age** — Secrets managed with Mozilla SOPS, encrypted with age keys
+- :memo: **Audit logging** — Every data access operation logged with tamper-evident trails
+
+---
+
+## :building_construction: Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                     Single VPS (Docker Compose)                       │
-│                                                                       │
-│  ┌──────────┐  ┌───────────┐  ┌───────────┐  ┌──────────────────┐   │
-│  │ Traefik  │  │    API    │  │  Worker   │  │  Content Engine  │   │
-│  │(internal)│  │ (FastAPI) │  │ (Celery)  │  │  (RAG + Claude)  │   │
-│  └──────────┘  └───────────┘  └───────────┘  └──────────────────┘   │
-│                                                                       │
-│  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌──────────────────┐  │
-│  │ Postgres  │  │   Redis   │  │  Qdrant   │  │      MinIO       │  │
-│  │ +pgvector │  │           │  │ (vectors) │  │  (object store)  │  │
-│  └───────────┘  └───────────┘  └───────────┘  └──────────────────┘  │
-│                                                                       │
-│  ┌───────────────────────────────────────────────────────────────┐   │
-│  │               Cloudflare Tunnel (zero public ports)            │   │
-│  └───────────────────────────────────────────────────────────────┘   │
-└──────────────────────────────────────────────────────────────────────┘
-        │                          │                        │
-   ┌────┴────┐              ┌──────┴──────┐          ┌──────┴──────┐
-   │   Web   │              │   Mobile    │          │  Automated  │
-   │ Console │              │  (Voice UI) │          │  Publishing │
-   │(Next.js)│              │(React Native│          │ (LinkedIn/X)│
-   └─────────┘              └─────────────┘          └─────────────┘
+                         Cloudflare Tunnel (zero public ports)
+                                      |
+                    +-----------------+-----------------+
+                    |                 |                 |
+               Web Console      Mobile App       Automated
+              (Next.js 15)    (React Native)     Publishing
+                    |                 |           (LinkedIn/X)
+                    +--------+--------+--------+
+                             |
+                    +--------v--------+
+                    |     Traefik     |         Single VPS
+                    |  (internal RP)  |      Docker Compose
+                    +--------+--------+
+                             |
+          +------------------+------------------+
+          |                  |                  |
+   +------v------+   +------v------+   +-------v--------+
+   |   FastAPI    |   |   Celery    |   | Content Engine |
+   |   (REST +    |   |  (Workers   |   |  (RAG + Claude |
+   |  WebSocket)  |   |   + Beat)   |   |   pipeline)    |
+   +------+-------+   +------+------+   +-------+--------+
+          |                  |                  |
+          +------------------+------------------+
+          |            |            |            |
+   +------v--+  +-----v---+  +----v----+  +----v----+
+   | Postgres |  |  Redis  |  | Qdrant  |  |  MinIO  |
+   |+pgvector |  | (broker |  |(vectors)|  |(objects)|
+   |          |  |+ cache) |  |         |  |         |
+   +----------+  +---------+  +---------+  +---------+
 ```
 
-## Data Integrations
+---
+
+## :electric_plug: Data Integrations
 
 | Category | Sources | Method |
-|----------|---------|--------|
-| **Banking** | Chase, TD, PNC, Discover, Amex | Plaid API (read-only transactions, balances, recurring) |
-| **Investments** | Fidelity/Schwab | Schwab API (portfolio reads + trading) |
+|:---------|:--------|:-------|
+| **Banking** | Chase, TD, PNC, Discover, Amex | Plaid API |
+| **Investments** | Fidelity / Schwab | Schwab API (`schwab-py`) |
 | **Email** | Gmail | Gmail API + IMAP fallback |
-| **Education** | Canvas LMS, Blackboard, Pearson | REST APIs + Playwright scraper |
-| **Social** | LinkedIn, X/Twitter | Platform APIs + scraper fallback |
+| **Education** | Canvas LMS, Blackboard, Pearson | REST APIs + Playwright |
+| **Social** | LinkedIn, X / Twitter | Platform APIs + scraper fallback |
 | **Calendar** | Google Calendar, Outlook | Google Calendar API, Microsoft Graph |
-| **Messaging** | WhatsApp | whatsapp-web.js Node.js bridge |
+| **Messaging** | WhatsApp | `whatsapp-web.js` Node.js bridge |
 | **Health** | Apple Health, Garmin | HealthKit export, Garmin Connect API |
-| **Productivity** | Mac Screen Time, iPhone | Custom Swift agent + iOS Shortcuts |
-| **News** | NewsAPI, RSS feeds | newsapi-python, feedparser |
-| **Web** | General web | Playwright + BeautifulSoup crawler |
+| **Productivity** | Mac Screen Time, iPhone | Swift agent + iOS Shortcuts |
+| **News** | NewsAPI, RSS feeds | `newsapi-python`, `feedparser` |
+| **Web** | General web | Playwright + BeautifulSoup |
 
-## Features
+---
 
-### Personal Intelligence
-- **Financial analysis** — Spending trends, recurring charges, investment portfolio tracking via Plaid + Schwab
-- **Email intelligence** — Automated categorization, priority scoring, relationship extraction from Gmail
-- **Academic tracking** — Assignment deadlines, grade monitoring across Canvas, Blackboard, Pearson
-- **Contact graph** — Relationship mapping across email, social, calendar, and messaging
-- **Health optimization** — Activity trends and sleep analysis from Apple Health + Garmin
+## :hammer_and_wrench: Tech Stack
 
-### Content Engine
-- **RAG pipeline** — Qdrant vector store with sentence-transformer embeddings over all ingested data
-- **Autonomous publishing** — Daily thought-leadership posts to LinkedIn and X, generated from personal knowledge base
-- **Claude-powered analysis** — Anthropic Claude API for content generation and insight synthesis
+<table>
+<tr>
+<td>
 
-### Security Architecture
-- **Zero attack surface** — No public ports; all access through Cloudflare Tunnel
-- **AES-256-GCM encryption** — All sensitive data encrypted at rest with authenticated encryption
-- **SOPS + age** — Secrets managed with Mozilla SOPS, encrypted with age keys
-- **Internal-only routing** — Traefik reverse proxy restricted to Docker network
-- **Audit logging** — All data access operations logged with tamper-evident trails
+[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Celery](https://img.shields.io/badge/Celery-5.4+-37814A?style=for-the-badge&logo=celery&logoColor=white)](https://docs.celeryq.dev/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-7.4+-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
+[![Qdrant](https://img.shields.io/badge/Qdrant-1.13+-DC244C?style=for-the-badge&logo=qdrant&logoColor=white)](https://qdrant.tech/)
 
-## Tech Stack
+</td>
+<td>
 
-| Layer | Technology |
-|-------|-----------|
-| API | FastAPI 0.115+, Python 3.12+ |
-| Task Queue | Celery 5.4+ with Redis broker |
-| Database | PostgreSQL 16+ with pgvector |
-| Vector Store | Qdrant 1.12+ |
-| Object Storage | MinIO |
-| LLM | Claude API (Anthropic SDK) |
-| Embeddings | sentence-transformers / OpenAI text-embedding-3-small |
-| Web Console | Next.js 15, shadcn/ui, Tailwind CSS, Zustand, D3.js |
-| Mobile | React Native (Expo SDK 52+), voice UI |
-| Infrastructure | Docker Compose, Traefik 3.x, Cloudflare Tunnel |
-| Secrets | SOPS + age, Docker Secrets |
+[![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![React Native](https://img.shields.io/badge/React_Native-Expo_52+-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://expo.dev/)
+[![Tailwind](https://img.shields.io/badge/Tailwind_CSS-3.x-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com/)
+[![Traefik](https://img.shields.io/badge/Traefik-3.x-24A1C1?style=for-the-badge&logo=traefikproxy&logoColor=white)](https://traefik.io/)
+[![Anthropic](https://img.shields.io/badge/Claude-API-D4A574?style=for-the-badge&logo=anthropic&logoColor=white)](https://anthropic.com/)
 
-## Project Structure
+</td>
+</tr>
+</table>
 
-```
-aegis/
-├── backend/
-│   ├── app/
-│   │   ├── main.py                    # FastAPI application
-│   │   ├── config.py                  # Environment configuration
-│   │   ├── celery_app.py              # Task queue setup
-│   │   ├── database.py                # Async SQLAlchemy engine
-│   │   ├── api/v1/                    # REST endpoints
-│   │   │   ├── auth.py                # Authentication
-│   │   │   ├── finance.py             # Banking & investments
-│   │   │   ├── email.py               # Email intelligence
-│   │   │   ├── calendar.py            # Calendar sync
-│   │   │   ├── social.py              # Social media
-│   │   │   ├── health.py              # Health metrics
-│   │   │   └── security.py            # Audit & encryption
-│   │   ├── integrations/              # 13 data source clients
-│   │   │   ├── plaid_client.py
-│   │   │   ├── schwab_client.py
-│   │   │   ├── gmail_client.py
-│   │   │   ├── canvas_client.py
-│   │   │   ├── linkedin_client.py
-│   │   │   ├── x_client.py
-│   │   │   ├── google_calendar.py
-│   │   │   ├── outlook_client.py
-│   │   │   ├── whatsapp_bridge.py
-│   │   │   ├── garmin_client.py
-│   │   │   └── ...
-│   │   ├── services/                  # Business logic
-│   │   │   ├── finance_analyzer.py
-│   │   │   ├── email_analyzer.py
-│   │   │   ├── contact_graph.py
-│   │   │   ├── content_engine.py
-│   │   │   ├── health_optimizer.py
-│   │   │   └── daily_briefing.py
-│   │   ├── models/                    # SQLAlchemy models
-│   │   ├── security/                  # Auth, encryption, audit
-│   │   └── tasks/                     # Celery task definitions
-│   ├── tests/                         # 207 tests
-│   ├── alembic/                       # Database migrations
-│   └── pyproject.toml
-├── console/                           # Next.js web dashboard
-│   └── src/
-│       ├── app/                       # 10 dashboard pages
-│       ├── components/                # UI components
-│       └── lib/                       # API client, state
-├── mobile/                            # React Native voice app
-│   └── app/                           # Expo Router screens
-├── whatsapp-bridge/                   # Node.js WhatsApp sidecar
-├── infrastructure/
-│   ├── cloudflared/                   # Tunnel configuration
-│   ├── traefik/                       # Reverse proxy config
-│   ├── postgres/                      # DB initialization
-│   └── scripts/                       # deploy.sh, backup.sh, rotate-secrets.sh
-├── secrets/                           # SOPS-encrypted credentials
-├── docker-compose.yml                 # Development
-├── docker-compose.prod.yml            # Production overrides
-└── .env.example                       # Environment template
-```
+---
 
-## Quick Start
+## :rocket: Quick Start
 
 ### Prerequisites
 
@@ -162,55 +136,133 @@ aegis/
 - Python 3.12+
 - Node.js 20+
 
-### Setup
+### 1. Clone and configure
 
 ```bash
 git clone https://github.com/JiwaniZakir/aegis.git
 cd aegis
-
-# Copy environment template
 cp .env.example .env
-# Edit .env with your API credentials (Plaid, Google, etc.)
+# Edit .env with your API credentials (Plaid, Google, Anthropic, etc.)
+```
 
-# Start all services
+### 2. Start all services
+
+```bash
 docker compose up -d
+```
 
-# Run database migrations
+### 3. Run database migrations
+
+```bash
 docker compose exec api alembic upgrade head
+```
 
-# Access web console
+### 4. Open the console
+
+```bash
 open http://localhost:3000
 ```
 
 ### Development
 
 ```bash
-# Backend only
-cd backend && uv sync && uv run uvicorn app.main:app --reload
+# Backend only (with hot reload)
+cd backend && uv sync --all-extras && uv run uvicorn app.main:app --reload
 
 # Console only
 cd console && npm install && npm run dev
 
-# Run tests
+# Run tests (338 tests)
 cd backend && uv run pytest
+
+# Lint + format
+make lint
+make format
 ```
 
-## Scheduled Tasks
+See the [`Makefile`](Makefile) for all available commands.
+
+---
+
+## :card_index_dividers: Project Structure
+
+```
+aegis/
+├── backend/
+│   ├── app/
+│   │   ├── main.py                 # FastAPI application factory
+│   │   ├── config.py               # Pydantic settings
+│   │   ├── celery_app.py           # Task queue + Beat schedule
+│   │   ├── database.py             # Async SQLAlchemy engine
+│   │   ├── api/v1/                 # 12 REST routers
+│   │   ├── integrations/           # 15 data source clients
+│   │   ├── services/               # 10 business logic modules
+│   │   ├── models/                 # 14 SQLAlchemy models
+│   │   ├── security/               # Auth, encryption, audit
+│   │   └── tasks/                  # 9 Celery task definitions
+│   ├── tests/                      # 338 tests
+│   ├── alembic/                    # Database migrations
+│   └── pyproject.toml
+├── console/                        # Next.js 15 web dashboard
+│   └── src/
+│       ├── app/                    # 10 dashboard pages
+│       ├── components/             # shadcn/ui components
+│       └── lib/                    # API client, Zustand stores
+├── mobile/                         # React Native voice app (Expo)
+├── whatsapp-bridge/                # Node.js WhatsApp sidecar
+├── infrastructure/
+│   ├── Dockerfile.*                # Multi-stage container builds
+│   ├── cloudflared/                # Tunnel configuration
+│   ├── traefik/                    # Reverse proxy config
+│   ├── postgres/                   # DB initialization
+│   └── scripts/                    # deploy.sh, backup.sh, rotate-secrets.sh
+├── secrets/                        # SOPS-encrypted credentials
+├── docker-compose.yml              # Development stack
+├── docker-compose.prod.yml         # Production overrides
+├── Makefile                        # Dev workflow commands
+└── .env.example                    # Environment template
+```
+
+---
+
+## :calendar: Scheduled Tasks
 
 | Task | Frequency | Description |
-|------|-----------|-------------|
+|:-----|:----------|:------------|
 | Financial sync | Every 6 hours | Pull transactions and balances via Plaid |
-| Email analysis | Every 4 hours | Categorize and extract insights from new emails |
-| Calendar sync | Every 2 hours | Sync events from Google Calendar + Outlook |
-| Social monitoring | Every 8 hours | Track LinkedIn and X activity |
-| Content publishing | Daily 8:00 AM | Generate and publish thought-leadership content |
-| Health sync | Daily 6:00 AM | Pull Garmin metrics and Apple Health exports |
-| Weekly briefing | Weekly (Monday) | Comprehensive intelligence digest |
+| Email analysis | Every 30 minutes | Categorize and extract insights from new emails |
+| Calendar sync | Every 15 minutes | Sync events from Google Calendar + Outlook |
+| Social monitoring | Every 2 hours | Track LinkedIn and X activity |
+| Health sync | Hourly | Process Apple Health + Garmin data |
+| Content publishing | Daily 7:00 AM | Generate and publish thought-leadership content |
+| WhatsApp sync | Every 30 minutes | Sync messages via WhatsApp bridge |
+| Meeting transcription | Every 2 hours | Transcribe and analyze recordings |
+| Garmin sync | Every 4 hours | Pull fitness and sleep metrics |
 
-## Contributing
+---
 
-See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for guidelines.
+## :handshake: Contributing
 
-## License
+Contributions are welcome. Please read the [contributing guidelines](.github/CONTRIBUTING.md) before opening a pull request.
 
-MIT License. See [LICENSE](LICENSE) for details.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feat/my-feature`)
+3. Commit your changes (`git commit -m 'feat: add my feature'`)
+4. Push to the branch (`git push origin feat/my-feature`)
+5. Open a Pull Request
+
+This project follows [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `chore:`, `docs:`, `security:`).
+
+---
+
+## :page_facing_up: License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+
+Built by [Zakir Jiwani](https://github.com/JiwaniZakir)
+
+</div>
