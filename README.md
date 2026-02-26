@@ -167,13 +167,16 @@ open http://localhost:3000
 
 ```bash
 # Backend only (with hot reload)
-cd backend && uv sync --all-extras && uv run uvicorn app.main:app --reload
+cd backend && uv sync --extra dev && uv run uvicorn app.main:app --reload
+
+# Install all optional extras (integrations + ml + dev)
+cd backend && uv sync --all-extras
 
 # Console only
 cd console && npm install && npm run dev
 
 # Run tests (338 tests)
-cd backend && uv run pytest
+cd backend && uv sync --extra dev && uv run pytest
 
 # Lint + format
 make lint
