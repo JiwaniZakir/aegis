@@ -73,5 +73,18 @@ markers = [
     "live: live integration tests against Docker stack (require running services)",
 ]
 
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "*/alembic/*",
+    "*/migrations/*",
+    "*/__pycache__/*",
+    "*/tests/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+fail_under = 80
+
 [tool.hatch.build.targets.wheel]
 packages = ["app"]

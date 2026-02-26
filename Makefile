@@ -48,7 +48,7 @@ migrate:
 
 # --- Run tests ---
 test:
-	cd backend && uv run pytest tests/ -v
+	cd backend && uv run pytest tests/ -v --cov=app --cov-report=term-missing --cov-fail-under=80
 
 # --- Lint ---
 lint:
