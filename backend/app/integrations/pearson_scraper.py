@@ -49,10 +49,7 @@ class PearsonScraper(BaseIntegration):
         try:
             from playwright.async_api import async_playwright
         except ImportError as exc:
-            msg = (
-                "playwright is not installed. "
-                "Install with: uv pip install 'aegis[integrations]'"
-            )
+            msg = "playwright is not installed. Install with: uv pip install 'aegis[integrations]'"
             raise PearsonScraperError(msg) from exc
 
         pw = await async_playwright().start()
