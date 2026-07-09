@@ -657,9 +657,7 @@ class TestAuthMe:
 
 class TestContacts:
     def test_suggest_outreach(self, access_token):
-        status, body = _request(
-            "GET", "/api/v1/contacts/suggest-outreach", token=access_token
-        )
+        status, body = _request("GET", "/api/v1/contacts/suggest-outreach", token=access_token)
         assert status == 200
         assert isinstance(body, list)
 
@@ -832,9 +830,7 @@ class TestWorkflows:
         assert status in {200, 201}
 
         # Step 2: Summary should reflect the ingested data
-        status, summary = _request(
-            "GET", "/api/v1/health-data/summary", token=access_token
-        )
+        status, summary = _request("GET", "/api/v1/health-data/summary", token=access_token)
         assert status == 200
         assert isinstance(summary, dict)
 
@@ -854,9 +850,7 @@ class TestWorkflows:
         assert status in {200, 503}  # 503 if Claude API unconfigured
 
         # Step 2: Fetch drafts — the generated content should be retrievable
-        status, drafts = _request(
-            "GET", "/api/v1/content/drafts", token=access_token
-        )
+        status, drafts = _request("GET", "/api/v1/content/drafts", token=access_token)
         assert status == 200
         assert isinstance(drafts, list)
 
@@ -887,9 +881,7 @@ class TestWorkflows:
         assert status in {200, 201}
 
         # Step 2: Productivity summary should reflect the data
-        status, summary = _request(
-            "GET", "/api/v1/productivity/summary", token=access_token
-        )
+        status, summary = _request("GET", "/api/v1/productivity/summary", token=access_token)
         assert status == 200
         assert isinstance(summary, dict)
 
@@ -899,9 +891,7 @@ class TestWorkflows:
         _request("GET", "/api/v1/finance/balances", token=access_token)
 
         # Step 2: Audit log should have entries
-        status, body = _request(
-            "GET", "/api/v1/security/audit-log?limit=5", token=access_token
-        )
+        status, body = _request("GET", "/api/v1/security/audit-log?limit=5", token=access_token)
         assert status == 200
         assert body["total"] > 0
         assert len(body["entries"]) > 0

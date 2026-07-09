@@ -6,6 +6,7 @@
 
 Aggregate 15+ data sources. Surface actionable insights with RAG. Publish autonomously.
 
+[![CI](https://img.shields.io/github/actions/workflow/status/JiwaniZakir/aegis/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/JiwaniZakir/aegis/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com/)

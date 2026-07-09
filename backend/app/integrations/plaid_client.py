@@ -59,8 +59,7 @@ class PlaidClient(BaseIntegration):
         super().__init__(user_id, db)
         if not PLAID_AVAILABLE:
             msg = (
-                "plaid-python is not installed. "
-                "Install with: uv pip install 'aegis[integrations]'"
+                "plaid-python is not installed. Install with: uv pip install 'aegis[integrations]'"
             )
             raise PlaidUnavailableError(msg)
 
